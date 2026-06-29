@@ -82,63 +82,48 @@
       position: relative;
     }
 
-    /* ── Video / Canvas ── */
-    #camera-view, #captured-canvas {
-      width: 100%;
-      aspect-ratio: 3/4;
-      object-fit: cover;
-      display: block;
-      background: #000;
-    }
-    #captured-canvas { display: none; }
-    /* Mirror the live preview only — canvas capture is handled separately in JS */
-    #camera-view { transform: scaleX(-1); }
-
-    /* ── Flip camera button (top-right of video) ── */
-    .flip-btn {
-      position: absolute;
-      top: 12px;
-      right: 12px;
-      width: 38px;
-      height: 38px;
-      border-radius: 50%;
-      background: rgba(15,27,61,0.65);
-      border: 1px solid var(--gold-dim);
-      cursor: pointer;
+    /* ── Native camera trigger area ── */
+    .snap-area {
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      font-size: 18px;
-      transition: background 0.2s;
-      z-index: 10;
-    }
-    .flip-btn:hover { background: rgba(201,168,76,0.15); }
-
-    /* ── Bottom bar inside camera card ── */
-    .camera-bottom {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      gap: 0;
-    }
-
-    /* ── Capture button: SNAP! ── */
-    .btn-capture {
-      background: none;
-      border: none;
+      gap: 16px;
+      padding: 52px 24px;
       cursor: pointer;
+      position: relative;
+    }
+    .snap-label {
       font-family: 'Playfair Display', serif;
-      font-size: 32px;
+      font-size: 36px;
       font-weight: 600;
       letter-spacing: 0.08em;
       color: var(--gold);
-      line-height: 1;
-      transition: transform 0.15s, opacity 0.15s;
-      padding: 6px 10px;
-      border-radius: 12px;
     }
-    .btn-capture:active { transform: scale(0.88); opacity: 0.7; }
+    .snap-hint {
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ivory-dim);
+    }
+    /* Hidden native file input */
+    #native-input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* ── Preview image after capture ── */
+    #preview-img {
+      width: 100%;
+      aspect-ratio: 3/4;
+      object-fit: cover;
+      display: none;
+      border-radius: 0;
+    }
 
     /* ── Post-capture controls ── */
     #post-capture {
@@ -403,25 +388,16 @@
   <!-- Camera Card -->
   <div class="camera-card" id="camera-card">
 
-    <!-- Camera not allowed yet -->
-    <div id="perm-view" class="perm-prompt">
-      <span class="perm-icon">📷</span>
-      <p class="perm-title">Take a Photo</p>
-      <p class="perm-desc">Allow camera access to capture this beautiful moment together.</p>
-      <button class="btn-allow" onclick="startCamera()">Allow Camera</button>
+    <!-- Tap to open native camera -->
+    <div class="snap-area" id="snap-area">
+      <span style="font-size:48px;">📷</span>
+      <p class="snap-label">SNAP!</p>
+      <p class="snap-hint">Tap to open camera</p>
+      <input type="file" id="native-input" accept="image/*">
     </div>
 
-    <!-- Live video -->
-    <video id="camera-view" autoplay playsinline style="display:none;"></video>
-    <canvas id="captured-canvas"></canvas>
-
-    <!-- Flip camera (only shown when live) -->
-    <button class="flip-btn" id="flip-btn" style="display:none;" onclick="flipCamera()" title="Flip camera">🔄</button>
-
-    <!-- Capture button row (only shown when live) -->
-    <div class="camera-bottom" id="capture-bar" style="display:none;">
-      <button class="btn-capture" onclick="capturePhoto()" title="Take photo">SNAP!</button>
-    </div>
+    <!-- Preview after photo taken -->
+    <img id="preview-img" alt="Your photo preview">
 
     <!-- Post-capture: note + actions -->
     <div id="post-capture">
@@ -468,75 +444,41 @@
   const db = firebase.database();
   const photosRef = db.ref('photos');
 
-  /* ── Camera state ── */
-  const video   = document.getElementById('camera-view');
-  const canvas  = document.getElementById('captured-canvas');
-  const ctx     = canvas.getContext('2d');
-  let stream      = null;
+  /* ── Native camera ── */
   let capturedData = null;
-  let facingMode  = 'user'; // start with front camera
+  const nativeInput = document.getElementById('native-input');
+  const previewImg  = document.getElementById('preview-img');
 
-  async function startCamera() {
-    document.getElementById('perm-view').style.display = 'none';
-    try {
-      if (stream) { stream.getTracks().forEach(t => t.stop()); }
-      stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode, width: { ideal: 1080 }, height: { ideal: 1440 } },
-        audio: false
-      });
-      video.srcObject = stream;
-      video.style.display = 'block';
-      document.getElementById('capture-bar').style.display = 'flex';
-      document.getElementById('flip-btn').style.display = 'flex';
-    } catch (err) {
-      document.getElementById('perm-view').style.display = 'flex';
-      document.getElementById('perm-view').querySelector('.perm-desc').textContent =
-        'Camera access denied. Please allow camera in your browser settings.';
-    }
-  }
+  nativeInput.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-  function flipCamera() {
-    facingMode = facingMode === 'user' ? 'environment' : 'user';
-    startCamera();
-  }
+    const reader = new FileReader();
+    reader.onload = ev => {
+      capturedData = ev.target.result;
+      previewImg.src = capturedData;
 
-  function capturePhoto() {
-    canvas.width  = video.videoWidth;
-    canvas.height = video.videoHeight;
-
-    // Mirror front camera so it feels natural (like a selfie)
-    if (facingMode === 'user') {
-      ctx.save();
-      ctx.translate(canvas.width, 0);
-      ctx.scale(-1, 1);
-      ctx.drawImage(video, 0, 0);
-      ctx.restore();
-    } else {
-      ctx.drawImage(video, 0, 0);
-    }
-
-    capturedData = canvas.toDataURL('image/jpeg', 0.72);
-
-    video.style.display = 'none';
-    document.getElementById('capture-bar').style.display = 'none';
-    document.getElementById('flip-btn').style.display = 'none';
-    canvas.style.display = 'block';
-    document.getElementById('post-capture').style.display = 'block';
-  }
+      // Show preview + post-capture, hide snap area
+      document.getElementById('snap-area').style.display = 'none';
+      previewImg.style.display = 'block';
+      document.getElementById('post-capture').style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  });
 
   function retake() {
     capturedData = null;
-    canvas.style.display = 'none';
+    nativeInput.value = '';
+    previewImg.style.display = 'none';
+    previewImg.src = '';
     document.getElementById('post-capture').style.display = 'none';
     document.getElementById('note-input').value = '';
-    video.style.display = 'block';
-    document.getElementById('capture-bar').style.display = 'flex';
-    document.getElementById('flip-btn').style.display = 'flex';
+    document.getElementById('snap-area').style.display = 'flex';
   }
 
   async function submitPhoto() {
     if (!capturedData) return;
-    const btn  = document.getElementById('submit-btn');
+    const btn = document.getElementById('submit-btn');
     btn.disabled = true;
     btn.textContent = '…';
 
@@ -553,26 +495,23 @@
     } catch (e) {
       btn.textContent = 'Try Again';
     } finally {
-      btn.disabled   = false;
+      btn.disabled = false;
       if (btn.textContent === '…') btn.textContent = 'Submit ✦';
     }
   }
 
   /* ── Done state ── */
   function showDone() {
-    // Stop camera stream to close camera
-    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
     capturedData = null;
-
-    canvas.style.display = 'none';
+    previewImg.style.display = 'none';
     document.getElementById('post-capture').style.display = 'none';
     document.getElementById('done-view').style.display = 'flex';
   }
 
   function takeAnother() {
     document.getElementById('done-view').style.display = 'none';
-    document.getElementById('perm-view').style.display = 'none';
-    startCamera();
+    nativeInput.value = '';
+    document.getElementById('snap-area').style.display = 'flex';
   }
 
   /* ── Toast ── */
