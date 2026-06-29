@@ -581,21 +581,21 @@
   }
 
   /* ── Real-time gallery ── */
-  photosRef.orderByChild('timestamp').on('value', snapshot => {
-    const gallery = document.getElementById('gallery');
-    const empty   = document.getElementById('gallery-empty');
-    const items   = [];
+  const gallery = document.getElementById('gallery');
+  const empty   = document.getElementById('gallery-empty');
+
+  // Load all existing photos first, newest at front
+  photosRef.orderByChild('timestamp').once('value', snapshot => {
+    const items = [];
     snapshot.forEach(child => items.push(child.val()));
     items.reverse(); // newest first
-
-    // Clear all cards
-    gallery.innerHTML = '';
 
     if (items.length === 0) {
       empty.style.display = 'block';
       return;
     }
     empty.style.display = 'none';
+    gallery.innerHTML = '';
 
     items.forEach(item => {
       const card = document.createElement('div');
@@ -605,6 +605,21 @@
         (item.note ? `<p class="g-note">${escHtml(item.note)}</p>` : '');
       gallery.appendChild(card);
     });
+  });
+
+  // Then listen for NEW photos coming in and prepend them
+  photosRef.orderByChild('timestamp').limitToLast(1).on('child_added', snapshot => {
+    const item = snapshot.val();
+    empty.style.display = 'none';
+
+    const card = document.createElement('div');
+    card.className = 'g-card';
+    card.innerHTML =
+      `<img src="${item.image}" alt="Guest photo" loading="lazy">` +
+      (item.note ? `<p class="g-note">${escHtml(item.note)}</p>` : '');
+
+    // Prepend so newest is always first
+    gallery.insertBefore(card, gallery.firstChild);
   });
 
   function escHtml(str) {
