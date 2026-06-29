@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fahim & Auni · Photo Wall</title>
+  <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Poppins:wght@300;400;500;600&family=Playfair+Display:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <style>
+    :root {
+      --navy: #0f1b3d;
+      --navy-light: #162248;
+      --gold: #c9a84c;
+      --gold-dim: rgba(201,168,76,0.35);
+      --gold-glow: rgba(201,168,76,0.12);
+      --ivory: #fdf8f0;
+      --ivory-dim: rgba(253,248,240,0.55);
+      --ivory-faint: rgba(253,248,240,0.07);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: var(--navy);
+      color: var(--ivory);
+      min-height: 100dvh;
+      overflow-x: hidden;
+    }
+
+    /* ── Diamond pattern background ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg width='80' height='80' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M40 0L80 40L40 80L0 40Z' fill='none' stroke='%23c9a84c' stroke-width='0.5' opacity='0.12'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Layout wrapper ── */
+    .page {
+      position: relative;
+      z-index: 1;
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 0 20px 60px;
+    }
+
+    /* ── Header ── */
+    header {
+      text-align: center;
+      padding: 44px 0 28px;
+    }
+    .header-eyebrow {
+      font-size: 10px;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 10px;
+    }
+    .header-title {
+      font-family: 'Great Vibes', cursive;
+      font-size: 52px;
+      color: var(--ivory);
+      line-height: 1.1;
+    }
+    .gold-line {
+      width: 120px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+      margin: 14px auto 0;
+    }
+
+    /* ── Camera card ── */
+    .camera-card {
+      background: var(--ivory-faint);
+      border: 1px solid var(--gold-dim);
+      border-radius: 18px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ── Video / Canvas ── */
+    #camera-view, #captured-canvas {
+      width: 100%;
+      aspect-ratio: 3/4;
+      object-fit: cover;
+      display: block;
+      background: #000;
+    }
+    #captured-canvas { display: none; }
+
+    /* ── Flip camera button (top-right of video) ── */
+    .flip-btn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: rgba(15,27,61,0.65);
+      border: 1px solid var(--gold-dim);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      transition: background 0.2s;
+      z-index: 10;
+    }
+    .flip-btn:hover { background: rgba(201,168,76,0.15); }
+
+    /* ── Bottom bar inside camera card ── */
+    .camera-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      gap: 0;
+    }
+
+    /* ── Capture button: SNAP! ── */
+    .btn-capture {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-family: 'Playfair Display', serif;
+      font-size: 32px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: var(--gold);
+      line-height: 1;
+      transition: transform 0.15s, opacity 0.15s;
+      padding: 6px 10px;
+      border-radius: 12px;
+    }
+    .btn-capture:active { transform: scale(0.88); opacity: 0.7; }
+
+    /* ── Post-capture controls ── */
+    #post-capture {
+      display: none;
+      padding: 0 16px 20px;
+    }
+
+    textarea {
+      width: 100%;
+      background: rgba(253,248,240,0.05);
+      border: 1px solid var(--gold-dim);
+      border-radius: 12px;
+      padding: 12px 14px;
+      color: var(--ivory);
+      font-family: 'Poppins', sans-serif;
+      font-size: 13px;
+      resize: none;
+      outline: none;
+      transition: border-color 0.2s;
+      line-height: 1.55;
+    }
+    textarea::placeholder { color: rgba(253,248,240,0.3); }
+    textarea:focus { border-color: var(--gold); }
+
+    .action-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .btn-outline {
+      flex: 1;
+      background: transparent;
+      border: 1px solid var(--gold-dim);
+      color: var(--ivory-dim);
+      padding: 11px 0;
+      border-radius: 10px;
+      font-family: 'Poppins', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-outline:hover { border-color: var(--gold); color: var(--ivory); }
+
+    .btn-submit {
+      flex: 1;
+      background: var(--gold);
+      border: 1px solid var(--gold);
+      color: var(--navy);
+      padding: 11px 0;
+      border-radius: 10px;
+      font-family: 'Poppins', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-submit:hover { background: #dbb85a; }
+    .btn-submit:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── Section label ── */
+    .section-label {
+      font-size: 10px;
+      letter-spacing: 0.32em;
+      text-transform: uppercase;
+      color: var(--gold);
+      text-align: center;
+      margin: 36px 0 14px;
+    }
+
+    /* ── Gallery horizontal scroll ── */
+    .gallery-track {
+      display: flex;
+      overflow-x: auto;
+      gap: 14px;
+      padding: 4px 0 12px;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+    }
+    .gallery-track::-webkit-scrollbar { height: 3px; }
+    .gallery-track::-webkit-scrollbar-track { background: transparent; }
+    .gallery-track::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 2px; }
+
+    /* ── Gallery card ── */
+    .g-card {
+      flex-shrink: 0;
+      width: 230px;
+      scroll-snap-align: start;
+      background: var(--ivory-faint);
+      border: 1px solid var(--gold-dim);
+      border-radius: 14px;
+      overflow: hidden;
+      transition: transform 0.2s;
+    }
+    .g-card:hover { transform: translateY(-2px); }
+    .g-card img {
+      width: 100%;
+      height: 280px;
+      object-fit: cover;
+      display: block;
+    }
+    .g-note {
+      padding: 10px 12px;
+      font-size: 12px;
+      color: var(--ivory-dim);
+      line-height: 1.5;
+      border-top: 1px solid var(--gold-dim);
+    }
+
+    /* ── Empty state ── */
+    .gallery-empty {
+      font-size: 13px;
+      color: rgba(253,248,240,0.3);
+      text-align: center;
+      padding: 28px 0;
+      width: 100%;
+    }
+
+    /* ── Done state ── */
+  function showDone() {
+    // Stop camera stream to close camera
+    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+    capturedData = null;
+
+    canvas.style.display = 'none';
+    document.getElementById('post-capture').style.display = 'none';
+    document.getElementById('done-view').style.display = 'flex';
+  }
+
+  function takeAnother() {
+    document.getElementById('done-view').style.display = 'none';
+    document.getElementById('perm-view').style.display = 'none';
+    startCamera();
+  }
+
+  /* ── Toast ── */
+    .toast {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%) translateY(24px);
+      background: rgba(201,168,76,0.15);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--gold-dim);
+      border-radius: 40px;
+      padding: 10px 22px;
+      color: var(--gold);
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+      z-index: 9999;
+      opacity: 0;
+      transition: transform 0.4s cubic-bezier(.32,.72,0,1), opacity 0.3s;
+      pointer-events: none;
+    }
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    /* ── Done view (after submit) ── */
+    .done-view {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      padding: 48px 24px;
+      text-align: center;
+    }
+    .done-icon { font-size: 44px; }
+    .done-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 22px;
+      color: var(--ivory);
+    }
+    .done-sub {
+      font-size: 12px;
+      color: var(--ivory-dim);
+      line-height: 1.7;
+    }
+    .btn-again {
+      margin-top: 4px;
+      background: transparent;
+      border: 1px solid var(--gold);
+      color: var(--gold);
+      padding: 10px 28px;
+      border-radius: 10px;
+      font-family: 'Poppins', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-again:hover { background: var(--gold-glow); }
+
+    /* ── Permission prompt ── */
+    .perm-prompt {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      aspect-ratio: 3/4;
+      gap: 14px;
+      padding: 24px;
+      text-align: center;
+    }
+    .perm-icon { font-size: 40px; }
+    .perm-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 18px;
+      color: var(--ivory);
+    }
+    .perm-desc {
+      font-size: 12px;
+      color: var(--ivory-dim);
+      line-height: 1.7;
+    }
+    .btn-allow {
+      margin-top: 6px;
+      background: transparent;
+      border: 1px solid var(--gold);
+      color: var(--gold);
+      padding: 10px 28px;
+      border-radius: 10px;
+      font-family: 'Poppins', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-allow:hover { background: var(--gold-glow); }
+
+    /* ── Responsive nudge ── */
+    @media (max-width: 360px) {
+      .header-title { font-size: 42px; }
+      .g-card { width: 200px; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <header>
+    <p class="header-eyebrow">Photo Booth</p>
+    <h1 class="header-title">Fahim & Auni</h1>
+    <div class="gold-line"></div>
+  </header>
+
+  <!-- Camera Card -->
+  <div class="camera-card" id="camera-card">
+
+    <!-- Camera not allowed yet -->
+    <div id="perm-view" class="perm-prompt">
+      <span class="perm-icon">📷</span>
+      <p class="perm-title">Take a Photo</p>
+      <p class="perm-desc">Allow camera access to capture this beautiful moment together.</p>
+      <button class="btn-allow" onclick="startCamera()">Allow Camera</button>
+    </div>
+
+    <!-- Live video -->
+    <video id="camera-view" autoplay playsinline style="display:none;"></video>
+    <canvas id="captured-canvas"></canvas>
+
+    <!-- Flip camera (only shown when live) -->
+    <button class="flip-btn" id="flip-btn" style="display:none;" onclick="flipCamera()" title="Flip camera">🔄</button>
+
+    <!-- Capture button row (only shown when live) -->
+    <div class="camera-bottom" id="capture-bar" style="display:none;">
+      <button class="btn-capture" onclick="capturePhoto()" title="Take photo">SNAP!</button>
+    </div>
+
+    <!-- Post-capture: note + actions -->
+    <div id="post-capture">
+      <textarea id="note-input" rows="2" maxlength="160"
+        placeholder="Leave a note or wish…"></textarea>
+      <div class="action-row">
+        <button class="btn-outline" onclick="retake()">Retake</button>
+        <button class="btn-submit" id="submit-btn" onclick="submitPhoto()">Submit ✦</button>
+      </div>
+    </div>
+
+    <!-- Done view (shown after successful submit) -->
+    <div id="done-view" class="done-view">
+      <span class="done-icon">✨</span>
+      <p class="done-title">Thank you!</p>
+      <p class="done-sub">Your photo has been shared.<br>Enjoy the celebration!</p>
+      <button class="btn-again" onclick="takeAnother()">Take Another</button>
+    </div>
+
+  </div>
+
+  <!-- Gallery -->
+  <p class="section-label">✦ Guest Gallery ✦</p>
+  <div class="gallery-track" id="gallery">
+    <p class="gallery-empty" id="gallery-empty">No photos yet&nbsp;&nbsp;📸</p>
+  </div>
+
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">✦ Photo shared successfully!</div>
+
+<script>
+  /* ── Firebase ── */
+  const firebaseConfig = {
+    apiKey: "AIzaSyBKqiNmEAuxyYWtyqITZ0NSrEnzJIuO1_o",
+    authDomain: "fahim-auni-wedding.firebaseapp.com",
+    projectId: "fahim-auni-wedding",
+    storageBucket: "fahim-auni-wedding.firebasestorage.app",
+    messagingSenderId: "695568427433",
+    appId: "1:695568427433:web:205578eccac0f5b2be3cb8",
+    databaseURL: "https://fahim-auni-wedding-default-rtdb.asia-southeast1.firebasedatabase.app"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+  const photosRef = db.ref('photos');
+
+  /* ── Camera state ── */
+  const video   = document.getElementById('camera-view');
+  const canvas  = document.getElementById('captured-canvas');
+  const ctx     = canvas.getContext('2d');
+  let stream      = null;
+  let capturedData = null;
+  let facingMode  = 'user'; // start with front camera
+
+  async function startCamera() {
+    document.getElementById('perm-view').style.display = 'none';
+    try {
+      if (stream) { stream.getTracks().forEach(t => t.stop()); }
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode, width: { ideal: 1080 }, height: { ideal: 1440 } },
+        audio: false
+      });
+      video.srcObject = stream;
+      video.style.display = 'block';
+      document.getElementById('capture-bar').style.display = 'flex';
+      document.getElementById('flip-btn').style.display = 'flex';
+    } catch (err) {
+      document.getElementById('perm-view').style.display = 'flex';
+      document.getElementById('perm-view').querySelector('.perm-desc').textContent =
+        'Camera access denied. Please allow camera in your browser settings.';
+    }
+  }
+
+  function flipCamera() {
+    facingMode = facingMode === 'user' ? 'environment' : 'user';
+    startCamera();
+  }
+
+  function capturePhoto() {
+    canvas.width  = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    // Draw as-is — no mirroring, what you see is what you get
+    ctx.drawImage(video, 0, 0);
+
+    capturedData = canvas.toDataURL('image/jpeg', 0.72);
+
+    video.style.display = 'none';
+    document.getElementById('capture-bar').style.display = 'none';
+    document.getElementById('flip-btn').style.display = 'none';
+    canvas.style.display = 'block';
+    document.getElementById('post-capture').style.display = 'block';
+  }
+
+  function retake() {
+    capturedData = null;
+    canvas.style.display = 'none';
+    document.getElementById('post-capture').style.display = 'none';
+    document.getElementById('note-input').value = '';
+    video.style.display = 'block';
+    document.getElementById('capture-bar').style.display = 'flex';
+    document.getElementById('flip-btn').style.display = 'flex';
+  }
+
+  async function submitPhoto() {
+    if (!capturedData) return;
+    const btn  = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.textContent = '…';
+
+    const note = document.getElementById('note-input').value.trim();
+    try {
+      await photosRef.push({
+        image: capturedData,
+        note,
+        timestamp: Date.now()
+      });
+      document.getElementById('note-input').value = '';
+      showDone();
+      showToast();
+    } catch (e) {
+      btn.textContent = 'Try Again';
+    } finally {
+      btn.disabled   = false;
+      if (btn.textContent === '…') btn.textContent = 'Submit ✦';
+    }
+  }
+
+  /* ── Done state ── */
+  function showDone() {
+    // Stop camera stream to close camera
+    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+    capturedData = null;
+
+    canvas.style.display = 'none';
+    document.getElementById('post-capture').style.display = 'none';
+    document.getElementById('done-view').style.display = 'flex';
+  }
+
+  function takeAnother() {
+    document.getElementById('done-view').style.display = 'none';
+    document.getElementById('perm-view').style.display = 'none';
+    startCamera();
+  }
+
+  /* ── Toast ── */
+  function showToast() {
+    const t = document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2800);
+  }
+
+  /* ── Real-time gallery ── */
+  photosRef.orderByChild('timestamp').on('value', snapshot => {
+    const gallery = document.getElementById('gallery');
+    const empty   = document.getElementById('gallery-empty');
+    const items   = [];
+    snapshot.forEach(child => items.push(child.val()));
+    items.reverse(); // newest first
+
+    gallery.querySelectorAll('.g-card').forEach(c => c.remove());
+
+    if (items.length === 0) {
+      if (empty) empty.style.display = '';
+      return;
+    }
+    if (empty) empty.style.display = 'none';
+
+    items.forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'g-card';
+      card.innerHTML =
+        `<img src="${item.image}" alt="Guest photo" loading="lazy">` +
+        (item.note ? `<p class="g-note">${escHtml(item.note)}</p>` : '');
+      gallery.appendChild(card);
+    });
+  });
+
+  function escHtml(str) {
+    return str
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;');
+  }
+</script>
+</body>
+</html>
