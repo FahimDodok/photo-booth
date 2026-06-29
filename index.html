@@ -231,7 +231,7 @@
     .g-note {
       padding: 10px 12px;
       font-size: 12px;
-      color: var(--ivory-dim);
+      color: var(--ivory);
       line-height: 1.5;
       border-top: 1px solid var(--gold-dim);
     }
@@ -366,6 +366,29 @@
     }
     .btn-allow:hover { background: var(--gold-glow); }
 
+    /* ── Floating petals ── */
+    .petal {
+      position: fixed;
+      pointer-events: none;
+      font-size: 1.4rem;
+      z-index: 9999;
+    }
+    @keyframes float-petal-1 {
+      0%   { transform: translateX(-80px)  translateY(0)     rotate(0deg);   opacity:1; }
+      100% { transform: translateX(120px)  translateY(110vh) rotate(360deg); opacity:0; }
+    }
+    @keyframes float-petal-2 {
+      0%   { transform: translateX(60px)   translateY(0)     rotate(0deg);    opacity:1; }
+      100% { transform: translateX(-140px) translateY(110vh) rotate(-360deg); opacity:0; }
+    }
+    @keyframes float-petal-3 {
+      0%   { transform: translateX(-40px)  translateY(0)     rotate(0deg);   opacity:1; }
+      100% { transform: translateX(100px)  translateY(110vh) rotate(360deg); opacity:0; }
+    }
+    .petal-1 { animation: float-petal-1  7s linear forwards; }
+    .petal-2 { animation: float-petal-2  8s linear forwards; }
+    .petal-3 { animation: float-petal-3  9s linear forwards; }
+
     /* ── Responsive nudge ── */
     @media (max-width: 360px) {
       .header-title { font-size: 42px; }
@@ -428,6 +451,22 @@
 <div class="toast" id="toast">✦ Photo shared successfully!</div>
 
 <script>
+  /* ── Floating petals ── */
+  (function spawnPetals() {
+    const emojis = ['🌸', '🌺', '🦋', '✨', '💛'];
+    setInterval(() => {
+      const p = document.createElement('div');
+      const type = (Math.random() * 3 | 0) + 1;
+      p.className = 'petal petal-' + type;
+      p.innerHTML = emojis[Math.random() * emojis.length | 0];
+      p.style.left = Math.random() * 100 + '%';
+      p.style.top  = '-30px';
+      document.body.appendChild(p);
+      // Remove after animation ends
+      setTimeout(() => p.remove(), 9500);
+    }, 1800);
+  })();
+
   /* ── Firebase ── */
   const firebaseConfig = {
     apiKey: "AIzaSyBKqiNmEAuxyYWtyqITZ0NSrEnzJIuO1_o",
