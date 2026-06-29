@@ -91,6 +91,8 @@
       background: #000;
     }
     #captured-canvas { display: none; }
+    /* Mirror the live preview only — canvas capture is handled separately in JS */
+    #camera-view { transform: scaleX(-1); }
 
     /* ── Flip camera button (top-right of video) ── */
     .flip-btn {
@@ -443,7 +445,7 @@
 
   <!-- Gallery -->
   <p class="section-label">✦ Guest Gallery ✦</p>
-  <p class="gallery-empty" id="gallery-empty">No photos yet&nbsp;&nbsp;📸</p>
+  <p class="gallery-empty" id="gallery-empty" style="display:block;">No photos yet&nbsp;&nbsp;📸</p>
   <div class="gallery-track" id="gallery"></div>
 
 </div>
