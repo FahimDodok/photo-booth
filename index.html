@@ -443,9 +443,8 @@
 
   <!-- Gallery -->
   <p class="section-label">✦ Guest Gallery ✦</p>
-  <div class="gallery-track" id="gallery">
-    <p class="gallery-empty" id="gallery-empty">No photos yet&nbsp;&nbsp;📸</p>
-  </div>
+  <p class="gallery-empty" id="gallery-empty">No photos yet&nbsp;&nbsp;📸</p>
+  <div class="gallery-track" id="gallery"></div>
 
 </div>
 
@@ -503,8 +502,16 @@
     canvas.width  = video.videoWidth;
     canvas.height = video.videoHeight;
 
-    // Draw as-is — no mirroring, what you see is what you get
-    ctx.drawImage(video, 0, 0);
+    // Mirror front camera so it feels natural (like a selfie)
+    if (facingMode === 'user') {
+      ctx.save();
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(video, 0, 0);
+      ctx.restore();
+    } else {
+      ctx.drawImage(video, 0, 0);
+    }
 
     capturedData = canvas.toDataURL('image/jpeg', 0.72);
 
@@ -581,13 +588,14 @@
     snapshot.forEach(child => items.push(child.val()));
     items.reverse(); // newest first
 
-    gallery.querySelectorAll('.g-card').forEach(c => c.remove());
+    // Clear all cards
+    gallery.innerHTML = '';
 
     if (items.length === 0) {
-      if (empty) empty.style.display = '';
+      empty.style.display = 'block';
       return;
     }
-    if (empty) empty.style.display = 'none';
+    empty.style.display = 'none';
 
     items.forEach(item => {
       const card = document.createElement('div');
