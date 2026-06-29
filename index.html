@@ -205,7 +205,6 @@
       overflow-x: auto;
       gap: 14px;
       padding: 4px 0 12px;
-      scroll-snap-type: x mandatory;
       -webkit-overflow-scrolling: touch;
     }
     .gallery-track::-webkit-scrollbar { height: 3px; }
@@ -216,7 +215,6 @@
     .g-card {
       flex-shrink: 0;
       width: 230px;
-      scroll-snap-align: start;
       background: var(--ivory-faint);
       border: 1px solid var(--gold-dim);
       border-radius: 14px;
@@ -476,16 +474,35 @@
     document.getElementById('snap-area').style.display = 'flex';
   }
 
+  function compressImage(dataUrl, maxWidth, quality) {
+    return new Promise(resolve => {
+      const img = new Image();
+      img.onload = () => {
+        const scale  = Math.min(1, maxWidth / img.width);
+        const w      = Math.round(img.width  * scale);
+        const h      = Math.round(img.height * scale);
+        const c      = document.createElement('canvas');
+        c.width  = w;
+        c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(c.toDataURL('image/jpeg', quality));
+      };
+      img.src = dataUrl;
+    });
+  }
+
   async function submitPhoto() {
     if (!capturedData) return;
     const btn = document.getElementById('submit-btn');
     btn.disabled = true;
-    btn.textContent = '…';
+    btn.textContent = 'Uploading…';
 
     const note = document.getElementById('note-input').value.trim();
     try {
+      // Compress to max 1200px wide at 0.82 quality — great quality, fast upload
+      const compressed = await compressImage(capturedData, 1200, 0.82);
       await photosRef.push({
-        image: capturedData,
+        image: compressed,
         note,
         timestamp: Date.now()
       });
@@ -496,7 +513,7 @@
       btn.textContent = 'Try Again';
     } finally {
       btn.disabled = false;
-      if (btn.textContent === '…') btn.textContent = 'Submit ✦';
+      if (btn.textContent === 'Uploading…') btn.textContent = 'Submit ✦';
     }
   }
 
