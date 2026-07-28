@@ -492,16 +492,104 @@
 
     const reader = new FileReader();
     reader.onload = ev => {
-      capturedData = ev.target.result;
-      previewImg.src = capturedData;
-
-      // Show preview + post-capture, hide snap area
-      document.getElementById('snap-area').style.display = 'none';
-      previewImg.style.display = 'block';
-      document.getElementById('post-capture').style.display = 'block';
+      // Fix EXIF orientation before showing preview (fixes iPhone mirror issue)
+      fixOrientation(ev.target.result).then(fixed => {
+        capturedData = fixed;
+        previewImg.src = fixed;
+        document.getElementById('snap-area').style.display = 'none';
+        previewImg.style.display = 'block';
+        document.getElementById('post-capture').style.display = 'block';
+      });
     };
     reader.readAsDataURL(file);
   });
+
+  /* ── EXIF orientation fix (solves iPhone mirrored/rotated selfie) ── */
+  function getExifOrientation(dataUrl) {
+    return new Promise(resolve => {
+      // Convert base64 to binary and read EXIF orientation tag
+      const bin = atob(dataUrl.split(',')[1]);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+
+      // JPEG starts with FFD8, EXIF marker is FFE1
+      if (bytes[0] !== 0xFF || bytes[1] !== 0xD8) return resolve(1);
+
+      let offset = 2;
+      while (offset < bytes.length) {
+        if (bytes[offset] !== 0xFF) break;
+        const marker = bytes[offset + 1];
+        const length = (bytes[offset + 2] << 8) | bytes[offset + 3];
+
+        if (marker === 0xE1) {
+          // EXIF header
+          const exif = bytes.subarray(offset + 4, offset + 4 + length);
+          const isLittleEndian = exif[6] === 0x49;
+          const read16 = i => isLittleEndian
+            ? exif[i] | (exif[i+1] << 8)
+            : (exif[i] << 8) | exif[i+1];
+          const read32 = i => isLittleEndian
+            ? exif[i] | (exif[i+1]<<8) | (exif[i+2]<<16) | (exif[i+3]<<24)
+            : (exif[i]<<24) | (exif[i+1]<<16) | (exif[i+2]<<8) | exif[i+3];
+
+          const ifdOffset = read32(10);
+          const entries  = read16(ifdOffset + 6);
+          for (let e = 0; e < entries; e++) {
+            const eOffset = ifdOffset + 6 + 2 + e * 12;
+            if (read16(eOffset) === 0x0112) {
+              return resolve(read16(eOffset + 8));
+            }
+          }
+          break;
+        }
+        offset += 2 + length;
+      }
+      resolve(1);
+    });
+  }
+
+  function fixOrientation(dataUrl) {
+    return new Promise(resolve => {
+      getExifOrientation(dataUrl).then(orientation => {
+        const img = new Image();
+        img.onload = () => {
+          const w = img.naturalWidth;
+          const h = img.naturalHeight;
+
+          // Max 1200px wide, 0.82 quality
+          const scale = Math.min(1, 1200 / Math.max(w, h));
+          const sw = Math.round(w * scale);
+          const sh = Math.round(h * scale);
+
+          const c   = document.createElement('canvas');
+          const ctx = c.getContext('2d');
+
+          // For rotated orientations, swap canvas dimensions
+          if (orientation >= 5 && orientation <= 8) {
+            c.width = sh; c.height = sw;
+          } else {
+            c.width = sw; c.height = sh;
+          }
+
+          // Apply transform based on EXIF orientation
+          switch (orientation) {
+            case 2: ctx.transform(-1,0,0,1,c.width,0); break;
+            case 3: ctx.transform(-1,0,0,-1,c.width,c.height); break;
+            case 4: ctx.transform(1,0,0,-1,0,c.height); break;
+            case 5: ctx.transform(0,1,1,0,0,0); break;
+            case 6: ctx.transform(0,1,-1,0,c.height,0); break;
+            case 7: ctx.transform(0,-1,-1,0,c.height,c.width); break;
+            case 8: ctx.transform(0,-1,1,0,0,c.width); break;
+            default: break; // orientation 1 = normal, no transform needed
+          }
+
+          ctx.drawImage(img, 0, 0, sw, sh);
+          resolve(c.toDataURL('image/jpeg', 0.82));
+        };
+        img.src = dataUrl;
+      });
+    });
+  }
 
   function retake() {
     capturedData = null;
@@ -513,23 +601,6 @@
     document.getElementById('snap-area').style.display = 'flex';
   }
 
-  function compressImage(dataUrl, maxWidth, quality) {
-    return new Promise(resolve => {
-      const img = new Image();
-      img.onload = () => {
-        const scale  = Math.min(1, maxWidth / img.width);
-        const w      = Math.round(img.width  * scale);
-        const h      = Math.round(img.height * scale);
-        const c      = document.createElement('canvas');
-        c.width  = w;
-        c.height = h;
-        c.getContext('2d').drawImage(img, 0, 0, w, h);
-        resolve(c.toDataURL('image/jpeg', quality));
-      };
-      img.src = dataUrl;
-    });
-  }
-
   async function submitPhoto() {
     if (!capturedData) return;
     const btn = document.getElementById('submit-btn');
@@ -538,10 +609,9 @@
 
     const note = document.getElementById('note-input').value.trim();
     try {
-      // Compress to max 1200px wide at 0.82 quality — great quality, fast upload
-      const compressed = await compressImage(capturedData, 1200, 0.82);
+      // capturedData is already compressed + orientation-corrected from fixOrientation()
       await photosRef.push({
-        image: compressed,
+        image: capturedData,
         note,
         timestamp: Date.now()
       });
