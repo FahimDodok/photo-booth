@@ -123,6 +123,7 @@
       object-fit: cover;
       display: none;
       border-radius: 0;
+      image-orientation: from-image;
     }
 
     /* ── Post-capture controls ── */
@@ -227,6 +228,7 @@
       height: 280px;
       object-fit: cover;
       display: block;
+      image-orientation: from-image;
     }
     .g-note {
       padding: 10px 12px;
@@ -492,7 +494,7 @@
 
     try {
       // createImageBitmap respects EXIF orientation natively on all modern browsers
-      const bitmap = await createImageBitmap(file);
+      const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image', premultiplyAlpha: 'none' });
 
       const maxDim = 1200;
       const scale  = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
