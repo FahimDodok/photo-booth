@@ -257,17 +257,7 @@
     .gallery-track::-webkit-scrollbar-track { background: transparent; }
     .gallery-track::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 2px; }
 
-    /* ── Gallery card ── */
-    .g-card {
-      flex-shrink: 0;
-      width: 230px;
-      background: var(--ivory-faint);
-      border: 1px solid var(--gold-dim);
-      border-radius: 14px;
-      overflow: hidden;
-      transition: transform 0.2s;
-    }
-    .g-card:hover { transform: translateY(-2px); }
+    /* ── Gallery card images ── */
     .g-card img {
       width: 100%;
       height: 280px;
@@ -278,18 +268,9 @@
     .g-note {
       padding: 10px 12px;
       font-size: 12px;
-      color: var(--ivory);
+      color: var(--navy);
       line-height: 1.5;
       border-top: 1px solid var(--gold-dim);
-    }
-
-    /* ── Empty state ── */
-    .gallery-empty {
-      font-size: 13px;
-      color: rgba(253,248,240,0.3);
-      text-align: center;
-      padding: 28px 0;
-      width: 100%;
     }
 
     /* ── Done state ── */
@@ -436,6 +417,249 @@
     .petal-2 { animation: float-petal-2  8s linear forwards; }
     .petal-3 { animation: float-petal-3  9s linear forwards; }
 
+    /* ── Photo count badge ── */
+    .photo-count {
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ivory-dim);
+      text-align: center;
+      margin-top: -8px;
+      margin-bottom: 14px;
+    }
+    .photo-count span {
+      color: var(--gold);
+      font-weight: 600;
+    }
+
+    /* ── Frame selector ── */
+    .frame-row {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 10px 0 4px;
+      margin-bottom: 8px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .frame-row::-webkit-scrollbar { display: none; }
+    .frame-opt {
+      flex-shrink: 0;
+      width: 56px;
+      height: 56px;
+      border-radius: 10px;
+      border: 1.5px solid var(--gold-dim);
+      background: transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: var(--ivory-dim);
+      letter-spacing: 0.04em;
+      text-align: center;
+      line-height: 1.3;
+      transition: all 0.2s;
+      padding: 4px;
+      position: relative;
+      overflow: hidden;
+    }
+    .frame-opt:hover { border-color: var(--gold); }
+    .frame-opt.selected { border-color: var(--gold); background: var(--gold-glow); }
+    .frame-opt.selected::after {
+      content: '✓';
+      position: absolute;
+      top: 3px; right: 4px;
+      font-size: 9px;
+      color: var(--gold);
+    }
+    .frame-preview {
+      width: 100%;
+      height: 100%;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      color: var(--ivory-dim);
+    }
+
+    /* ── Sticker tray ── */
+    .sticker-label {
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ivory-dim);
+      margin: 8px 0 6px;
+    }
+    .sticker-tray {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .sticker-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      border: 1px solid var(--gold-dim);
+      background: transparent;
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+    .sticker-btn:active { transform: scale(0.85); background: var(--gold-glow); }
+
+    /* ── Sticker layer on preview ── */
+    #preview-wrapper {
+      position: relative;
+      display: none;
+    }
+    #sticker-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .placed-sticker {
+      position: absolute;
+      font-size: 36px;
+      cursor: grab;
+      user-select: none;
+      -webkit-user-select: none;
+      pointer-events: all;
+      line-height: 1;
+      touch-action: none;
+      transform: translate(-50%, -50%);
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+    }
+    .placed-sticker:active { cursor: grabbing; }
+
+    /* ── Fullscreen lightbox ── */
+    #lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 99999;
+      background: rgba(10,16,35,0.96);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    #lightbox.open { display: flex; }
+    #lightbox-img {
+      max-width: 100%;
+      max-height: 75dvh;
+      border-radius: 14px;
+      border: 1px solid var(--gold-dim);
+      object-fit: contain;
+    }
+    #lightbox-note {
+      margin-top: 14px;
+      font-size: 13px;
+      color: var(--ivory-dim);
+      text-align: center;
+      max-width: 320px;
+      line-height: 1.6;
+      font-style: italic;
+    }
+    #lightbox-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: rgba(253,248,240,0.08);
+      border: 1px solid var(--gold-dim);
+      color: var(--ivory);
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+    #lightbox-close:hover { background: rgba(201,168,76,0.15); }
+
+    /* ── Gallery section (ivory) ── */
+    .gallery-section {
+      background: var(--ivory);
+      position: relative;
+      overflow: hidden;
+      padding: 40px 0 48px;
+      /* cream ornament pattern like wedding invite */
+      background-image:
+        url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M50 10L60 40L90 50L60 60L50 90L40 60L10 50L40 40Z' fill='none' stroke='%23c9a84c' stroke-width='0.5' opacity='0.10'/%3E%3C/svg%3E"),
+        url("data:image/svg+xml,%3Csvg width='80' height='80' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='40' cy='40' r='30' fill='none' stroke='%23c9a84c' stroke-width='0.3' opacity='0.08'/%3E%3C/svg%3E");
+      background-color: var(--ivory);
+      background-position: 0 0, 40px 40px;
+      background-repeat: repeat;
+    }
+    .gallery-inner {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 0 20px;
+      position: relative;
+      z-index: 1;
+    }
+    /* Corner accents */
+    .g-corner {
+      position: absolute;
+      width: 44px; height: 44px;
+      border-color: var(--gold);
+      border-style: solid;
+      opacity: 0.3;
+    }
+    .g-corner.tl { top: 16px; left: 16px; border-width: 2px 0 0 2px; }
+    .g-corner.tr { top: 16px; right: 16px; border-width: 2px 2px 0 0; }
+    .g-corner.bl { bottom: 16px; left: 16px; border-width: 0 0 2px 2px; }
+    .g-corner.br { bottom: 16px; right: 16px; border-width: 0 2px 2px 0; }
+
+    /* Dark versions of labels for ivory bg */
+    .section-label-dark {
+      font-size: 10px;
+      letter-spacing: 0.32em;
+      text-transform: uppercase;
+      color: var(--gold);
+      text-align: center;
+      margin: 0 0 6px;
+    }
+    .photo-count-dark {
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(15,27,61,0.45);
+      text-align: center;
+      margin-bottom: 14px;
+    }
+    .photo-count-dark span { color: var(--navy); font-weight: 600; }
+    .gallery-empty-dark {
+      font-size: 13px;
+      color: rgba(15,27,61,0.35);
+      text-align: center;
+      padding: 28px 0;
+      width: 100%;
+    }
+
+    /* ── Gallery card — navy on ivory ── */
+    .g-card {
+      flex-shrink: 0;
+      width: 230px;
+      background: white;
+      border: 1px solid var(--gold-dim);
+      border-radius: 14px;
+      overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 2px 12px rgba(15,27,61,0.08);
+    }
+    .g-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(15,27,61,0.12); }
+
     /* ── Responsive nudge ── */
     @media (max-width: 360px) {
       .header-title { font-size: 42px; }
@@ -464,12 +688,49 @@
       <input type="file" id="native-input" accept="image/*" capture>
     </div>
 
-    <!-- Preview after photo taken -->
-    <img id="preview-img" alt="Your photo preview">
-    <button id="cancel-btn" onclick="retake()" title="Cancel">✕</button>
+    <!-- Preview wrapper with sticker layer -->
+    <div id="preview-wrapper">
+      <img id="preview-img" alt="Your photo preview" style="width:100%;aspect-ratio:3/4;object-fit:cover;display:block;image-orientation:from-image;">
+      <div id="sticker-layer"></div>
+      <button id="cancel-btn" onclick="retake()" title="Cancel">✕</button>
+    </div>
 
     <!-- Post-capture: note + actions -->
     <div id="post-capture">
+      <!-- Frame selector -->
+      <div class="frame-row" id="frame-row">
+        <button class="frame-opt selected" data-frame="none" onclick="selectFrame(this,'none')">
+          <span style="font-size:18px;">🚫</span>
+        </button>
+        <button class="frame-opt" data-frame="gold" onclick="selectFrame(this,'gold')">
+          <div class="frame-preview" style="border:3px solid #c9a84c;border-radius:4px;">
+            <span style="font-size:8px;color:#c9a84c;">Gold</span>
+          </div>
+        </button>
+        <button class="frame-opt" data-frame="stamp" onclick="selectFrame(this,'stamp')">
+          <div class="frame-preview" style="border:2px dashed #c9a84c;border-radius:4px;padding:2px;">
+            <span style="font-size:7px;color:#c9a84c;line-height:1.2;">F&A<br>2027</span>
+          </div>
+        </button>
+        <button class="frame-opt" data-frame="hearts" onclick="selectFrame(this,'hearts')">
+          <div class="frame-preview" style="font-size:22px;">💍</div>
+        </button>
+        <button class="frame-opt" data-frame="floral" onclick="selectFrame(this,'floral')">
+          <div class="frame-preview" style="font-size:22px;">🌸</div>
+        </button>
+      </div>
+      <!-- Sticker tray -->
+      <p class="sticker-label">✦ Add stickers</p>
+      <div class="sticker-tray">
+        <button class="sticker-btn" onclick="addSticker('💍')">💍</button>
+        <button class="sticker-btn" onclick="addSticker('🌸')">🌸</button>
+        <button class="sticker-btn" onclick="addSticker('❤️')">❤️</button>
+        <button class="sticker-btn" onclick="addSticker('🦋')">🦋</button>
+        <button class="sticker-btn" onclick="addSticker('✨')">✨</button>
+        <button class="sticker-btn" onclick="addSticker('🌺')">🌺</button>
+        <button class="sticker-btn" onclick="addSticker('💛')">💛</button>
+        <button class="sticker-btn" onclick="addSticker('🥂')">🥂</button>
+      </div>
       <button class="btn-flip" id="flip-btn" onclick="toggleFlip()">🔁 Flip / Mirror</button>
       <textarea id="note-input" rows="2" maxlength="160"
         placeholder="Leave a note or wish…"></textarea>
@@ -489,12 +750,34 @@
 
   </div>
 
-  <!-- Gallery -->
-  <p class="section-label">✦ Guest Gallery ✦</p>
-  <p class="gallery-empty" id="gallery-empty" style="display:block;">No photos yet&nbsp;&nbsp;📸</p>
-  <div class="gallery-track" id="gallery"></div>
+</div><!-- end .page -->
 
+<!-- Gallery Section — ivory background like wedding invite -->
+<div class="gallery-section">
+  <div class="gallery-inner">
+    <!-- corner accents -->
+    <div class="g-corner tl"></div>
+    <div class="g-corner tr"></div>
+    <div class="g-corner bl"></div>
+    <div class="g-corner br"></div>
+
+    <p class="section-label-dark">✦ Guest Gallery ✦</p>
+    <p class="photo-count-dark" id="photo-count" style="display:none;"><span id="photo-num">0</span> photos shared</p>
+    <p class="gallery-empty-dark" id="gallery-empty" style="display:block;">No photos yet&nbsp;&nbsp;📸</p>
+    <div class="gallery-track" id="gallery"></div>
+  </div>
 </div>
+
+<div class="page" style="padding-top:0;"><!-- reopen page wrapper for footer space -->
+
+<!-- Fullscreen lightbox -->
+<div id="lightbox">
+  <button id="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lightbox-img" alt="Full photo">
+  <p id="lightbox-note"></p>
+</div>
+
+</div><!-- end reopened .page -->
 
 <!-- Toast -->
 <div class="toast" id="toast">✦ Photo shared successfully!</div>
@@ -567,10 +850,14 @@
 
     capturedData   = originalData;
     previewImg.src = originalData;
-    document.getElementById('snap-area').style.display  = 'none';
-    previewImg.style.display = 'block';
-    document.getElementById('cancel-btn').style.display = 'flex';
+    document.getElementById('snap-area').style.display    = 'none';
+    document.getElementById('preview-wrapper').style.display = 'block';
+    document.getElementById('cancel-btn').style.display   = 'flex';
     document.getElementById('post-capture').style.display = 'block';
+    document.getElementById('sticker-layer').innerHTML    = '';
+    currentFrame = 'none';
+    document.querySelectorAll('.frame-opt').forEach(b => b.classList.remove('selected'));
+    document.querySelector('[data-frame="none"]').classList.add('selected');
   });
 
   /* ── Flip toggle ── */
@@ -603,9 +890,10 @@
     capturedData = null;
     isFlipped    = false;
     nativeInput.value = '';
-    previewImg.style.display = 'none';
+    document.getElementById('preview-wrapper').style.display = 'none';
     previewImg.src = '';
     document.getElementById('cancel-btn').style.display = 'none';
+    document.getElementById('sticker-layer').innerHTML = '';
     document.getElementById('post-capture').style.display = 'none';
     document.getElementById('note-input').value = '';
     document.getElementById('flip-btn').classList.remove('active');
@@ -621,8 +909,10 @@
 
     const note = document.getElementById('note-input').value.trim();
     try {
+      // Bake frame + stickers into final image
+      const finalImage = await composeFinal();
       await photosRef.push({
-        image: capturedData,
+        image: finalImage,
         note,
         timestamp: Date.now()
       });
@@ -640,7 +930,7 @@
   /* ── Done state ── */
   function showDone() {
     capturedData = null;
-    previewImg.style.display = 'none';
+    document.getElementById('preview-wrapper').style.display = 'none';
     document.getElementById('post-capture').style.display = 'none';
     document.getElementById('done-view').style.display = 'flex';
   }
@@ -657,6 +947,175 @@
     t.classList.add('show');
     setTimeout(() => t.classList.remove('show'), 2800);
   }
+
+  /* ── Frame selector ── */
+  let currentFrame = 'none';
+
+  function selectFrame(btn, frame) {
+    document.querySelectorAll('.frame-opt').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    currentFrame = frame;
+  }
+
+  /* ── Stickers ── */
+  function addSticker(emoji) {
+    const layer = document.getElementById('sticker-layer');
+    const wrapper = document.getElementById('preview-wrapper');
+    const rect = wrapper.getBoundingClientRect();
+
+    const s = document.createElement('div');
+    s.className = 'placed-sticker';
+    s.textContent = emoji;
+    // Place randomly in middle area
+    s.style.left = (25 + Math.random() * 50) + '%';
+    s.style.top  = (25 + Math.random() * 50) + '%';
+    layer.appendChild(s);
+    makeDraggable(s);
+  }
+
+  function makeDraggable(el) {
+    let startX, startY, startLeft, startTop;
+
+    function getPercent(px, dim) { return (px / dim) * 100; }
+
+    el.addEventListener('touchstart', e => {
+      e.stopPropagation();
+      const t = e.touches[0];
+      const rect = el.parentElement.getBoundingClientRect();
+      startX = t.clientX;
+      startY = t.clientY;
+      startLeft = parseFloat(el.style.left);
+      startTop  = parseFloat(el.style.top);
+    }, { passive: true });
+
+    el.addEventListener('touchmove', e => {
+      e.stopPropagation();
+      e.preventDefault();
+      const t = e.touches[0];
+      const rect = el.parentElement.getBoundingClientRect();
+      const dx = getPercent(t.clientX - startX, rect.width);
+      const dy = getPercent(t.clientY - startY, rect.height);
+      el.style.left = Math.min(95, Math.max(5, startLeft + dx)) + '%';
+      el.style.top  = Math.min(95, Math.max(5, startTop  + dy)) + '%';
+    }, { passive: false });
+
+    el.addEventListener('mousedown', e => {
+      e.stopPropagation();
+      const rect = el.parentElement.getBoundingClientRect();
+      startX = e.clientX; startY = e.clientY;
+      startLeft = parseFloat(el.style.left);
+      startTop  = parseFloat(el.style.top);
+      const onMove = e => {
+        const dx = getPercent(e.clientX - startX, rect.width);
+        const dy = getPercent(e.clientY - startY, rect.height);
+        el.style.left = Math.min(95, Math.max(5, startLeft + dx)) + '%';
+        el.style.top  = Math.min(95, Math.max(5, startTop  + dy)) + '%';
+      };
+      const onUp = () => {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      };
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+
+    // Double tap/click to remove
+    el.addEventListener('dblclick', () => el.remove());
+    let lastTap = 0;
+    el.addEventListener('touchend', e => {
+      const now = Date.now();
+      if (now - lastTap < 300) el.remove();
+      lastTap = now;
+    });
+  }
+
+  /* ── Compose final image (photo + frame + stickers) ── */
+  function composeFinal() {
+    return new Promise(resolve => {
+      const img = new Image();
+      img.onload = () => {
+        const w = img.naturalWidth;
+        const h = img.naturalHeight;
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+
+        // Draw frame
+        if (currentFrame === 'gold') {
+          const bw = Math.round(w * 0.018);
+          ctx.strokeStyle = '#c9a84c';
+          ctx.lineWidth = bw;
+          ctx.strokeRect(bw/2, bw/2, w - bw, h - bw);
+        } else if (currentFrame === 'stamp') {
+          const bw = Math.round(w * 0.015);
+          ctx.strokeStyle = '#c9a84c';
+          ctx.lineWidth = bw;
+          ctx.setLineDash([bw * 2, bw]);
+          ctx.strokeRect(bw * 2, bw * 2, w - bw * 4, h - bw * 4);
+          ctx.setLineDash([]);
+          // Text stamp
+          const fs = Math.round(w * 0.055);
+          ctx.font = `bold ${fs}px 'Playfair Display', serif`;
+          ctx.fillStyle = 'rgba(201,168,76,0.85)';
+          ctx.textAlign = 'center';
+          ctx.fillText('Fahim & Auni · 2027', w / 2, h - fs * 0.8);
+        } else if (currentFrame === 'hearts') {
+          const fs = Math.round(w * 0.07);
+          ctx.font = `${fs}px serif`;
+          const icons = ['💍','💍','💍'];
+          const gap = w / (icons.length + 1);
+          icons.forEach((ic, i) => ctx.fillText(ic, gap * (i+1), fs * 1.1));
+          icons.forEach((ic, i) => ctx.fillText(ic, gap * (i+1), h - fs * 0.3));
+        } else if (currentFrame === 'floral') {
+          const fs = Math.round(w * 0.07);
+          ctx.font = `${fs}px serif`;
+          const corners = [[0,0],[w,0],[0,h],[w,h]];
+          corners.forEach(([cx,cy]) => {
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.fillText('🌸', cx === 0 ? fs*0.2 : -fs*1.1, cy === 0 ? fs*1.1 : -fs*0.2);
+            ctx.restore();
+          });
+        }
+
+        // Draw stickers from DOM
+        const wrapper = document.getElementById('preview-wrapper');
+        const wRect   = wrapper.getBoundingClientRect();
+        const layer   = document.getElementById('sticker-layer');
+        layer.querySelectorAll('.placed-sticker').forEach(s => {
+          const leftPct = parseFloat(s.style.left) / 100;
+          const topPct  = parseFloat(s.style.top)  / 100;
+          const sx = w * leftPct;
+          const sy = h * topPct;
+          const sfs = Math.round(w * 0.10);
+          ctx.font = `${sfs}px serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(s.textContent, sx, sy);
+        });
+
+        resolve(canvas.toDataURL('image/jpeg', 0.82));
+      };
+      img.src = capturedData;
+    });
+  }
+
+  /* ── Fullscreen lightbox ── */
+  function openLightbox(src, note) {
+    document.getElementById('lightbox-img').src = src;
+    document.getElementById('lightbox-note').textContent = note ? '"' + note + '"' : '';
+    document.getElementById('lightbox').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeLightbox() {
+    document.getElementById('lightbox').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  // Close on background tap
+  document.getElementById('lightbox').addEventListener('click', e => {
+    if (e.target === document.getElementById('lightbox')) closeLightbox();
+  });
 
   /* ── Real-time gallery ── */
   const gallery = document.getElementById('gallery');
@@ -677,17 +1136,13 @@
 
     gallery.innerHTML = '';
 
+    updateCount(items.length);
     if (items.length === 0) {
       empty.style.display = 'block';
     } else {
       empty.style.display = 'none';
       items.forEach(item => {
-        const card = document.createElement('div');
-        card.className = 'g-card';
-        card.innerHTML =
-          `<img src="${item.image}" alt="Guest photo" loading="lazy">` +
-          (item.note ? `<p class="g-note">${escHtml(item.note)}</p>` : '');
-        gallery.appendChild(card);
+        gallery.appendChild(makeCard(item));
       });
     }
 
@@ -702,16 +1157,36 @@
     if (item.timestamp <= lastTimestamp) return;
 
     empty.style.display = 'none';
+    gallery.insertBefore(makeCard(item), gallery.firstChild);
+    lastTimestamp = item.timestamp;
+    updateCount(totalPhotos + 1);
+  });
+
+  /* ── Make gallery card ── */
+  function makeCard(item) {
     const card = document.createElement('div');
     card.className = 'g-card';
+    card.style.cursor = 'pointer';
     card.innerHTML =
-      `<img src="${item.image}" alt="Guest photo" loading="lazy">` +
+      `<img src="${item.image}" alt="Guest photo" loading="lazy" style="width:100%;height:280px;object-fit:cover;display:block;image-orientation:from-image;">` +
       (item.note ? `<p class="g-note">${escHtml(item.note)}</p>` : '');
+    card.addEventListener('click', () => openLightbox(item.image, item.note));
+    return card;
+  }
 
-    // Prepend — newest photo appears first
-    gallery.insertBefore(card, gallery.firstChild);
-    lastTimestamp = item.timestamp;
-  });
+  /* ── Photo count ── */
+  let totalPhotos = 0;
+  function updateCount(n) {
+    totalPhotos = n;
+    const el  = document.getElementById('photo-count');
+    const num = document.getElementById('photo-num');
+    if (n > 0) {
+      num.textContent = n;
+      el.style.display = 'block';
+    } else {
+      el.style.display = 'none';
+    }
+  }
 
   function escHtml(str) {
     return str
