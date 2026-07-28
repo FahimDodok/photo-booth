@@ -155,6 +155,26 @@
       margin-top: 12px;
     }
 
+    /* ── Flip toggle button ── */
+    .btn-flip {
+      width: 100%;
+      background: transparent;
+      border: 1px solid var(--gold-dim);
+      color: var(--gold);
+      padding: 9px 0;
+      border-radius: 10px;
+      font-family: 'Poppins', sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 2px;
+    }
+    .btn-flip:hover { background: var(--gold-glow); border-color: var(--gold); }
+    .btn-flip.active { background: var(--gold-glow); border-color: var(--gold); }
+
     .btn-outline {
       flex: 1;
       background: transparent;
@@ -424,6 +444,7 @@
 
     <!-- Post-capture: note + actions -->
     <div id="post-capture">
+      <button class="btn-flip" id="flip-btn" onclick="toggleFlip()">🔁 Flip / Mirror</button>
       <textarea id="note-input" rows="2" maxlength="160"
         placeholder="Leave a note or wish…"></textarea>
       <div class="action-row">
@@ -484,7 +505,9 @@
   const photosRef = db.ref('photos');
 
   /* ── Native camera ── */
-  let capturedData = null;
+  let originalData = null; // untouched original from camera
+  let capturedData = null; // what gets uploaded (may be flipped)
+  let isFlipped    = false;
   const nativeInput = document.getElementById('native-input');
   const previewImg  = document.getElementById('preview-img');
 
@@ -492,66 +515,73 @@
     const file = e.target.files[0];
     if (!file) return;
 
-    try {
-      // createImageBitmap respects EXIF orientation natively on all modern browsers
-      const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image', premultiplyAlpha: 'none' });
+    isFlipped = false;
+    document.getElementById('flip-btn').classList.remove('active');
+    document.getElementById('flip-btn').textContent = '🔁 Flip / Mirror';
 
+    try {
+      const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
       const maxDim = 1200;
       const scale  = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
       const w = Math.round(bitmap.width  * scale);
       const h = Math.round(bitmap.height * scale);
-
       const canvas = document.createElement('canvas');
-      canvas.width  = w;
-      canvas.height = h;
-      const ctx2d = canvas.getContext('2d');
-
-      // Detect front camera selfie — iOS stores them mirrored at pixel level
-      // Fix: flip canvas horizontally before drawing
-      const isFrontCamera = file.name.toLowerCase().includes('img_') ||
-                            file.type === 'image/jpeg';
-      // Always mirror-correct: flip, draw, flip back
-      // This unflips iOS front camera and leaves rear camera unchanged
-      // because iOS rear = normal, iOS front = mirrored pixels
-      // We detect by checking EXIF MirrorHorizontal — but since we can't easily,
-      // safest is to let user confirm. Instead: flip only if front camera file hint.
-      // Actually the cleanest: always flip for iOS (detected via UA), leave Android alone.
-      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-      if (isIOS) {
-        ctx2d.translate(w, 0);
-        ctx2d.scale(-1, 1);
-      }
-      ctx2d.drawImage(bitmap, 0, 0, w, h);
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(bitmap, 0, 0, w, h);
       bitmap.close();
-
-      capturedData = canvas.toDataURL('image/jpeg', 0.82);
-      previewImg.src = capturedData;
-
-      document.getElementById('snap-area').style.display = 'none';
-      previewImg.style.display = 'block';
-      document.getElementById('post-capture').style.display = 'block';
-
+      originalData = canvas.toDataURL('image/jpeg', 0.82);
     } catch (err) {
-      // Fallback for older browsers — read as dataURL directly
-      const reader = new FileReader();
-      reader.onload = ev => {
-        capturedData = ev.target.result;
-        previewImg.src = capturedData;
-        document.getElementById('snap-area').style.display = 'none';
-        previewImg.style.display = 'block';
-        document.getElementById('post-capture').style.display = 'block';
-      };
-      reader.readAsDataURL(file);
+      // Fallback
+      await new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = ev => { originalData = ev.target.result; resolve(); };
+        reader.readAsDataURL(file);
+      });
     }
+
+    capturedData   = originalData;
+    previewImg.src = originalData;
+    document.getElementById('snap-area').style.display  = 'none';
+    previewImg.style.display = 'block';
+    document.getElementById('post-capture').style.display = 'block';
   });
 
+  /* ── Flip toggle ── */
+  function toggleFlip() {
+    isFlipped = !isFlipped;
+    const btn = document.getElementById('flip-btn');
+    btn.classList.toggle('active', isFlipped);
+    btn.textContent = isFlipped ? '🔁 Flipped — tap to undo' : '🔁 Flip / Mirror';
+
+    // Re-draw the image flipped or original
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width  = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      if (isFlipped) {
+        ctx.translate(img.naturalWidth, 0);
+        ctx.scale(-1, 1);
+      }
+      ctx.drawImage(img, 0, 0);
+      capturedData   = canvas.toDataURL('image/jpeg', 0.82);
+      previewImg.src = capturedData;
+    };
+    img.src = originalData;
+  }
+
   function retake() {
+    originalData = null;
     capturedData = null;
+    isFlipped    = false;
     nativeInput.value = '';
     previewImg.style.display = 'none';
     previewImg.src = '';
     document.getElementById('post-capture').style.display = 'none';
     document.getElementById('note-input').value = '';
+    document.getElementById('flip-btn').classList.remove('active');
+    document.getElementById('flip-btn').textContent = '🔁 Flip / Mirror';
     document.getElementById('snap-area').style.display = 'flex';
   }
 
