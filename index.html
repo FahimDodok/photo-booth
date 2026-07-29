@@ -894,12 +894,10 @@
 
     /* ── Text Modal ── */
     #text-modal {
-      position: fixed;
+      position: absolute;
       inset: 0;
       z-index: 100000;
-      background: rgba(10, 16, 35, 0.95);
-      backdrop-filter: blur(15px);
-      -webkit-backdrop-filter: blur(15px);
+      background: rgba(0, 0, 0, 0.5);
       display: none;
       flex-direction: column;
     }
@@ -926,6 +924,7 @@
     .text-modal-content {
       flex: 1;
       display: flex;
+      flex-direction: column;
       position: relative;
     }
     .tm-input-wrapper {
@@ -933,7 +932,21 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 20px 80px 20px 20px;
+      padding: 20px 40px;
+      position: relative;
+    }
+    .tm-size-slider {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      height: 40vh;
+      width: 16px;
+      -webkit-appearance: slider-vertical;
+      appearance: slider-vertical;
+      accent-color: var(--gold);
+      background: transparent;
+      outline: none;
     }
     #tm-input {
       width: 100%;
@@ -951,20 +964,39 @@
       color: rgba(255, 255, 255, 0.3);
     }
     .tm-tools {
-      position: absolute;
-      right: 16px;
-      top: 50%;
-      transform: translateY(-50%);
+      padding: 12px 16px;
       display: flex;
-      flex-direction: column;
-      gap: 24px;
+      flex-direction: row;
+      gap: 20px;
+      overflow-x: auto;
       align-items: center;
+      background: rgba(0,0,0,0.4);
     }
     .tm-row {
       display: flex;
-      flex-direction: column;
+      flex-direction: row;
       gap: 12px;
       align-items: center;
+      border-right: 1px solid rgba(255,255,255,0.2);
+      padding-right: 20px;
+    }
+    .tm-row:last-child {
+      border-right: none;
+      padding-right: 0;
+    }
+    .tm-align-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: white;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
     }
     .tm-font-btn {
       width: 44px;
@@ -1096,14 +1128,18 @@
       </div>
       <div class="text-modal-content">
         <div class="tm-input-wrapper">
+          <input type="range" class="tm-size-slider" id="tm-size-slider" min="0.5" max="4.0" step="0.1" value="1.0" oninput="updateTextSize(this.value)">
           <textarea id="tm-input" rows="3" placeholder="Type text or emoji..."></textarea>
         </div>
         <div class="tm-tools">
+          <div class="tm-row">
+            <button class="tm-align-btn" id="tm-align-btn" onclick="toggleAlignment()">≡</button>
+          </div>
           <div class="tm-row tm-fonts" id="tm-font-row">
-            <button class="tm-font-btn active" style="font-family: 'Poppins', sans-serif;" onclick="selectFont('\'Poppins\', sans-serif', this)">A</button>
-            <button class="tm-font-btn" style="font-family: 'Great Vibes', cursive; font-size: 24px;" onclick="selectFont('\'Great Vibes\', cursive', this)">A</button>
-            <button class="tm-font-btn" style="font-family: 'Playfair Display', serif;" onclick="selectFont('\'Playfair Display\', serif', this)">A</button>
-            <button class="tm-font-btn" style="font-family: serif;" onclick="selectFont('serif', this)">A</button>
+            <button class="tm-font-btn active" style="font-family: 'Poppins', sans-serif;" onclick="selectFont('\'Poppins\', sans-serif', this)">Aa</button>
+            <button class="tm-font-btn" style="font-family: 'Great Vibes', cursive; font-size: 20px;" onclick="selectFont('\'Great Vibes\', cursive', this)">Aa</button>
+            <button class="tm-font-btn" style="font-family: 'Playfair Display', serif;" onclick="selectFont('\'Playfair Display\', serif', this)">Aa</button>
+            <button class="tm-font-btn" style="font-family: serif;" onclick="selectFont('serif', this)">Aa</button>
           </div>
           <div class="tm-row tm-colors" id="tm-color-row">
             <button class="tm-color-btn active" style="background: #ffffff;" onclick="selectColor('#ffffff', this)"></button>
@@ -1167,18 +1203,26 @@
     /* ══════════════════════════════════════════
        FLOATING PETALS
     ══════════════════════════════════════════ */
+    let petalsActive = true;
     (function spawnPetals() {
       const emojis = ['🌸', '🌺', '🦋', '✨', '💛'];
       setInterval(() => {
+        if (!petalsActive) return;
         const p = document.createElement('div');
         p.className = 'petal petal-' + ((Math.random() * 3 | 0) + 1);
         p.textContent = emojis[Math.random() * emojis.length | 0];
         p.style.left = Math.random() * 100 + '%';
         p.style.top = '-30px';
         document.body.appendChild(p);
-        setTimeout(() => p.remove(), 9500);
+        setTimeout(() => { if (p.parentNode) p.remove(); }, 9500);
       }, 1800);
     })();
+    function togglePetals(active) {
+      petalsActive = active;
+      if (!active) {
+        document.querySelectorAll('.petal').forEach(p => p.remove());
+      }
+    }
 
     /* ══════════════════════════════════════════
        IMAGE PROCESSING
@@ -1216,6 +1260,7 @@
       // Reset state
       isFlipped = false;
       currentFrame = 'none';
+      togglePetals(false);
       document.getElementById('flip-btn').classList.remove('active');
       document.getElementById('flip-btn').textContent = '🔁 Flip / Mirror';
       document.querySelectorAll('.frame-opt').forEach(b => b.classList.remove('selected'));
@@ -1285,6 +1330,7 @@
     function retake() {
       originalThumb = originalFull = capturedThumb = capturedFull = null;
       isFlipped = false;
+      togglePetals(true);
       nativeInput.value = '';
       previewImg.src = '';
       document.getElementById('preview-wrapper').style.display = 'none';
@@ -1335,6 +1381,7 @@
           prog.style.display = 'none';
           bar.style.width = '0%';
           showDone();
+          togglePetals(true);
           showToast();
         }, 300);
 
@@ -1428,6 +1475,8 @@
     ══════════════════════════════════════════ */
     let currentTmFont = "'Poppins', sans-serif";
     let currentTmColor = "#ffffff";
+    let currentTmAlign = "center";
+    let currentTmScale = 1.0;
     let editingSticker = null;
 
     function openTextModal() {
@@ -1437,6 +1486,9 @@
       input.value = '';
       selectFont("'Poppins', sans-serif", document.querySelectorAll('.tm-font-btn')[0]);
       selectColor("#ffffff", document.querySelectorAll('.tm-color-btn')[0]);
+      setAlign("center");
+      document.getElementById('tm-size-slider').value = 1.0;
+      updateTextSize(1.0);
       input.focus();
     }
 
@@ -1448,20 +1500,46 @@
       
       const font = el.dataset.font || "'Poppins', sans-serif";
       const color = el.dataset.color || "#ffffff";
+      const align = el.dataset.align || "center";
+      const scale = parseFloat(el.dataset.scale) || 1.0;
       
-      // Select the correct font
       document.querySelectorAll('.tm-font-btn').forEach(b => {
         b.classList.toggle('active', b.style.fontFamily.replace(/"/g, "'").includes(font.replace(/"/g, "'").split(',')[0]));
       });
-      // Removing color active state since exact rgb match is tricky
       document.querySelectorAll('.tm-color-btn').forEach(b => b.classList.remove('active'));
       
       currentTmFont = font;
       currentTmColor = color;
       input.style.fontFamily = font;
       input.style.color = color;
+      setAlign(align);
+      document.getElementById('tm-size-slider').value = scale;
+      updateTextSize(scale);
       
       input.focus();
+    }
+
+    function updateTextSize(val) {
+      currentTmScale = parseFloat(val);
+      const fs = Math.round(32 * currentTmScale);
+      document.getElementById('tm-input').style.fontSize = fs + 'px';
+    }
+
+    function toggleAlignment() {
+      const aligns = ["left", "center", "right"];
+      let idx = aligns.indexOf(currentTmAlign);
+      idx = (idx + 1) % aligns.length;
+      setAlign(aligns[idx]);
+    }
+
+    function setAlign(align) {
+      currentTmAlign = align;
+      const input = document.getElementById('tm-input');
+      input.style.textAlign = align;
+      const btn = document.getElementById('tm-align-btn');
+      if (align === "left") btn.textContent = "⫷";
+      else if (align === "right") btn.textContent = "⫸";
+      else btn.textContent = "≡";
     }
 
     function closeTextModal() {
@@ -1499,7 +1577,7 @@
         s.className = 'placed-sticker';
         s.style.left = (25 + Math.random() * 50) + '%';
         s.style.top = (25 + Math.random() * 50) + '%';
-        s.dataset.scale = 1;
+        s.dataset.scale = 1.0;
         s.dataset.rotation = 0;
         layer.appendChild(s);
         makeDraggable(s);
@@ -1508,8 +1586,12 @@
       s.textContent = text;
       s.style.fontFamily = currentTmFont;
       s.style.color = currentTmColor;
+      s.style.textAlign = currentTmAlign;
       s.dataset.font = currentTmFont;
       s.dataset.color = currentTmColor;
+      s.dataset.align = currentTmAlign;
+      s.dataset.scale = currentTmScale;
+      s.style.setProperty('--s-scale', currentTmScale);
     }
 
     /* ── Trash zone helpers ── */
@@ -1722,6 +1804,7 @@
             const rotation = parseFloat(s.dataset.rotation) || 0;
             const fontFam = s.dataset.font || "'Poppins', sans-serif";
             const color = s.dataset.color || "#ffffff";
+            const align = s.dataset.align || "center";
 
             // Scale sticker size proportionally — thumb gets smaller stickers
             const sfs = Math.round(w * (size === 'thumb' ? 0.12 : 0.10) * scale);
@@ -1732,15 +1815,25 @@
 
             ctx.font = `${sfs}px ${fontFam}`;
             ctx.fillStyle = color;
-            ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             
             const lines = s.textContent.split('\n');
             const lineHeight = sfs * 1.2;
             const startY = -(lines.length - 1) * lineHeight / 2;
             
-            lines.forEach((line, i) => {
-              ctx.fillText(line, 0, startY + i * lineHeight);
+            let maxWidth = 0;
+            const lineMetrics = lines.map(line => {
+              const lw = ctx.measureText(line).width;
+              maxWidth = Math.max(maxWidth, lw);
+              return { line, lw };
+            });
+            
+            ctx.textAlign = 'left';
+            lineMetrics.forEach((item, i) => {
+              let x = -maxWidth / 2;
+              if (align === 'center') x += (maxWidth - item.lw) / 2;
+              else if (align === 'right') x += (maxWidth - item.lw);
+              ctx.fillText(item.line, x, startY + i * lineHeight);
             });
             ctx.restore();
           });
