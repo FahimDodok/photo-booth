@@ -894,10 +894,10 @@
 
     /* ── Text Modal ── */
     #text-modal {
-      position: absolute;
+      position: fixed;
       inset: 0;
       z-index: 100000;
-      background: rgba(0, 0, 0, 0.5);
+      background: rgba(0, 0, 0, 0.7);
       display: none;
       flex-direction: column;
     }
@@ -906,48 +906,79 @@
     }
     .text-modal-header {
       display: flex;
-      justify-content: space-between;
+      justify-content: flex-end;
       padding: 16px 20px;
     }
-    .tm-close, .tm-done {
+    .tm-done {
       background: transparent;
       border: none;
-      color: var(--ivory);
-      font-size: 16px;
+      font-size: 18px;
       font-family: 'Poppins', sans-serif;
       cursor: pointer;
-    }
-    .tm-done {
-      font-weight: 600;
+      font-weight: 700;
       color: var(--gold);
     }
     .text-modal-content {
       flex: 1;
       display: flex;
       flex-direction: column;
-      position: relative;
+      justify-content: center;
+      padding-bottom: 20vh; /* Shift everything up slightly to account for keyboard */
     }
     .tm-input-wrapper {
-      flex: 1;
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 20px 40px;
       position: relative;
     }
-    .tm-size-slider {
+    .tm-size-slider-wrapper {
       position: absolute;
       left: 16px;
       top: 50%;
       transform: translateY(-50%);
-      height: 40vh;
-      width: 16px;
-      -webkit-appearance: slider-vertical;
-      appearance: slider-vertical;
-      accent-color: var(--gold);
+      height: 200px;
+      width: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .tm-size-slider {
+      -webkit-appearance: none;
+      width: 200px; /* physical height because of rotation */
+      height: 24px;
       background: transparent;
+      transform: rotate(-90deg);
       outline: none;
     }
+    .tm-size-slider::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.6);
+      border-radius: 10px;
+      clip-path: polygon(0 40%, 100% 0%, 100% 100%, 0 60%);
+      transition: all 0.2s;
+    }
+    .tm-size-slider:active::-webkit-slider-runnable-track {
+      background: var(--gold);
+      height: 16px;
+      clip-path: polygon(0 20%, 100% 0%, 100% 100%, 0 80%);
+    }
+    .tm-size-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 24px;
+      width: 24px;
+      border-radius: 50%;
+      background: white;
+      margin-top: -9px; /* align thumb to track */
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      cursor: pointer;
+    }
+    .tm-size-slider:active::-webkit-slider-thumb {
+      transform: scale(1.1);
+      background: var(--gold);
+    }
+
     #tm-input {
       width: 100%;
       background: transparent;
@@ -964,13 +995,14 @@
       color: rgba(255, 255, 255, 0.3);
     }
     .tm-tools {
-      padding: 12px 16px;
       display: flex;
       flex-direction: row;
-      gap: 20px;
+      gap: 16px;
       overflow-x: auto;
       align-items: center;
-      background: rgba(0,0,0,0.4);
+      justify-content: center;
+      margin-top: 16px;
+      padding: 0 20px;
     }
     .tm-row {
       display: flex;
@@ -1120,15 +1152,16 @@
 
     </div>
 
-    <!-- Text Modal -->
+    <!-- Text Modal fixed to screen -->
     <div id="text-modal">
       <div class="text-modal-header">
-        <button class="tm-close" onclick="closeTextModal()">Cancel</button>
         <button class="tm-done" onclick="confirmText()">Done</button>
       </div>
       <div class="text-modal-content">
         <div class="tm-input-wrapper">
-          <input type="range" class="tm-size-slider" id="tm-size-slider" min="0.5" max="4.0" step="0.1" value="1.0" oninput="updateTextSize(this.value)">
+          <div class="tm-size-slider-wrapper">
+            <input type="range" class="tm-size-slider" id="tm-size-slider" min="0.5" max="4.0" step="0.1" value="1.0" oninput="updateTextSize(this.value)">
+          </div>
           <textarea id="tm-input" rows="3" placeholder="Type text or emoji..."></textarea>
         </div>
         <div class="tm-tools">
@@ -1480,6 +1513,7 @@
     let editingSticker = null;
 
     function openTextModal() {
+      document.body.style.overflow = 'hidden';
       editingSticker = null;
       document.getElementById('text-modal').classList.add('open');
       const input = document.getElementById('tm-input');
@@ -1493,6 +1527,7 @@
     }
 
     function editSticker(el) {
+      document.body.style.overflow = 'hidden';
       editingSticker = el;
       document.getElementById('text-modal').classList.add('open');
       const input = document.getElementById('tm-input');
@@ -1543,6 +1578,7 @@
     }
 
     function closeTextModal() {
+      document.body.style.overflow = '';
       document.getElementById('text-modal').classList.remove('open');
     }
 
