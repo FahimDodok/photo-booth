@@ -101,6 +101,16 @@
       text-transform: uppercase;
       color: var(--ivory-dim);
     }
+    .snap-reminder {
+      font-size: 11px;
+      color: rgba(201,168,76,0.6);
+      text-align: center;
+      line-height: 1.7;
+      padding: 0 12px;
+      border-top: 1px solid rgba(201,168,76,0.15);
+      padding-top: 14px;
+      margin-top: 4px;
+    }
     #native-input {
       position: absolute;
       inset: 0;
@@ -619,6 +629,7 @@
       <span style="font-size:48px;">📷</span>
       <p class="snap-label">SNAP!</p>
       <p class="snap-hint">Tap to open camera</p>
+      <p class="snap-reminder">📸 Photos are shared publicly with all guests.<br>Make it your best shot — once posted, it cannot be deleted!<br>📐 For best results, shoot in <strong>portrait mode</strong> (3:4 ratio) so your photo fills the frame perfectly.</p>
       <input type="file" id="native-input" accept="image/*" capture>
     </div>
 
