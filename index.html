@@ -396,8 +396,10 @@
       user-select: none;
       -webkit-user-select: none;
       pointer-events: all;
-      line-height: 1;
+      line-height: 1.2;
       touch-action: none;
+      white-space: pre-wrap; /* For text with line breaks */
+      text-align: center;
       transform: translate(-50%, -50%) scale(var(--s-scale)) rotate(var(--s-rotate));
       filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
       transition: filter 0.15s, transform 0.15s;
@@ -882,6 +884,105 @@
       transition: background 0.2s;
     }
 
+    /* ── Text Modal ── */
+    #text-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 100000;
+      background: rgba(10, 16, 35, 0.95);
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      display: none;
+      flex-direction: column;
+    }
+    #text-modal.open {
+      display: flex;
+    }
+    .text-modal-header {
+      display: flex;
+      justify-content: space-between;
+      padding: 16px 20px;
+    }
+    .tm-close, .tm-done {
+      background: transparent;
+      border: none;
+      color: var(--ivory);
+      font-size: 16px;
+      font-family: 'Poppins', sans-serif;
+      cursor: pointer;
+    }
+    .tm-done {
+      font-weight: 600;
+      color: var(--gold);
+    }
+    .tm-input-wrapper {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    #tm-input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #ffffff;
+      font-family: 'Poppins', sans-serif;
+      font-size: 32px;
+      text-align: center;
+      resize: none;
+      line-height: 1.2;
+    }
+    #tm-input::placeholder {
+      color: rgba(255, 255, 255, 0.3);
+    }
+    .tm-tools {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      background: rgba(0,0,0,0.3);
+    }
+    .tm-row {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+    }
+    .tm-font-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: white;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .tm-font-btn.active {
+      background: var(--gold);
+      border-color: var(--gold);
+      color: var(--navy);
+    }
+    .tm-color-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.3);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .tm-color-btn.active {
+      border: 2px solid white;
+      transform: scale(1.15);
+    }
+
     @media (max-width: 360px) {
       .header-title {
         font-size: 42px;
@@ -949,18 +1050,8 @@
             <div class="frame-preview" style="font-size:22px;">🌸</div>
           </button>
         </div>
-        <!-- Sticker tray -->
-        <p class="sticker-label">✦ Add stickers</p>
-        <div class="sticker-tray">
-          <button class="sticker-btn" onclick="addSticker('💍')">💍</button>
-          <button class="sticker-btn" onclick="addSticker('🌸')">🌸</button>
-          <button class="sticker-btn" onclick="addSticker('❤️')">❤️</button>
-          <button class="sticker-btn" onclick="addSticker('🦋')">🦋</button>
-          <button class="sticker-btn" onclick="addSticker('✨')">✨</button>
-          <button class="sticker-btn" onclick="addSticker('🌺')">🌺</button>
-          <button class="sticker-btn" onclick="addSticker('💛')">💛</button>
-          <button class="sticker-btn" onclick="addSticker('🥂')">🥂</button>
-        </div>
+        <!-- Add Text / Emoji Button -->
+        <button class="btn-outline" style="width:100%; margin-bottom:12px; border-color:var(--gold); color:var(--gold);" onclick="openTextModal()">✦ Add Text / Emoji</button>
         <button class="btn-flip" id="flip-btn" onclick="toggleFlip()">🔁 Flip / Mirror</button>
         <!-- Upload progress -->
         <div id="upload-progress">
@@ -980,6 +1071,33 @@
         <button class="btn-again" onclick="takeAnother()">Take Another</button>
       </div>
 
+    </div>
+
+    <!-- Text Modal -->
+    <div id="text-modal">
+      <div class="text-modal-header">
+        <button class="tm-close" onclick="closeTextModal()">Cancel</button>
+        <button class="tm-done" onclick="confirmText()">Done</button>
+      </div>
+      <div class="tm-input-wrapper">
+        <textarea id="tm-input" rows="3" placeholder="Type text or emoji..."></textarea>
+      </div>
+      <div class="tm-tools">
+        <div class="tm-row tm-fonts" id="tm-font-row">
+          <button class="tm-font-btn active" style="font-family: 'Poppins', sans-serif;" onclick="selectFont('\'Poppins\', sans-serif', this)">A</button>
+          <button class="tm-font-btn" style="font-family: 'Great Vibes', cursive; font-size: 24px;" onclick="selectFont('\'Great Vibes\', cursive', this)">A</button>
+          <button class="tm-font-btn" style="font-family: 'Playfair Display', serif;" onclick="selectFont('\'Playfair Display\', serif', this)">A</button>
+          <button class="tm-font-btn" style="font-family: serif;" onclick="selectFont('serif', this)">A</button>
+        </div>
+        <div class="tm-row tm-colors" id="tm-color-row">
+          <button class="tm-color-btn active" style="background: #ffffff;" onclick="selectColor('#ffffff', this)"></button>
+          <button class="tm-color-btn" style="background: #0f1b3d;" onclick="selectColor('#0f1b3d', this)"></button>
+          <button class="tm-color-btn" style="background: #c9a84c;" onclick="selectColor('#c9a84c', this)"></button>
+          <button class="tm-color-btn" style="background: #ff5050;" onclick="selectColor('#ff5050', this)"></button>
+          <button class="tm-color-btn" style="background: #87ceeb;" onclick="selectColor('#87ceeb', this)"></button>
+          <button class="tm-color-btn" style="background: #ffb6c1;" onclick="selectColor('#ffb6c1', this)"></button>
+        </div>
+      </div>
     </div>
 
   </div><!-- end .page -->
@@ -1291,15 +1409,55 @@
     /* ══════════════════════════════════════════
        STICKERS
     ══════════════════════════════════════════ */
-    function addSticker(emoji) {
+    let currentTmFont = "'Poppins', sans-serif";
+    let currentTmColor = "#ffffff";
+
+    function openTextModal() {
+      document.getElementById('text-modal').classList.add('open');
+      const input = document.getElementById('tm-input');
+      input.value = '';
+      input.focus();
+    }
+
+    function closeTextModal() {
+      document.getElementById('text-modal').classList.remove('open');
+    }
+
+    function selectFont(font, btn) {
+      currentTmFont = font;
+      document.getElementById('tm-input').style.fontFamily = font;
+      document.querySelectorAll('.tm-font-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    function selectColor(color, btn) {
+      currentTmColor = color;
+      document.getElementById('tm-input').style.color = color;
+      document.querySelectorAll('.tm-color-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    function confirmText() {
+      const input = document.getElementById('tm-input');
+      const text = input.value.trim();
+      closeTextModal();
+      
+      if (!text) return;
+
       const layer = document.getElementById('sticker-layer');
       const s = document.createElement('div');
       s.className = 'placed-sticker';
-      s.textContent = emoji;
+      s.textContent = text;
       s.style.left = (25 + Math.random() * 50) + '%';
       s.style.top = (25 + Math.random() * 50) + '%';
+      s.style.fontFamily = currentTmFont;
+      s.style.color = currentTmColor;
+      
       s.dataset.scale = 1;
       s.dataset.rotation = 0;
+      s.dataset.font = currentTmFont;
+      s.dataset.color = currentTmColor;
+      
       layer.appendChild(s);
       makeDraggable(s);
     }
@@ -1481,6 +1639,8 @@
 
             const scale = parseFloat(s.dataset.scale) || 1;
             const rotation = parseFloat(s.dataset.rotation) || 0;
+            const fontFam = s.dataset.font || "'Poppins', sans-serif";
+            const color = s.dataset.color || "#ffffff";
 
             // Scale sticker size proportionally — thumb gets smaller stickers
             const sfs = Math.round(w * (size === 'thumb' ? 0.12 : 0.10) * scale);
@@ -1489,10 +1649,18 @@
             ctx.translate(sx, sy);
             ctx.rotate(rotation * Math.PI / 180);
 
-            ctx.font = `${sfs}px serif`;
+            ctx.font = `${sfs}px ${fontFam}`;
+            ctx.fillStyle = color;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(s.textContent, 0, 0); // draw at 0,0 since we translated
+            
+            const lines = s.textContent.split('\n');
+            const lineHeight = sfs * 1.2;
+            const startY = -(lines.length - 1) * lineHeight / 2;
+            
+            lines.forEach((line, i) => {
+              ctx.fillText(line, 0, startY + i * lineHeight);
+            });
             ctx.restore();
           });
 
