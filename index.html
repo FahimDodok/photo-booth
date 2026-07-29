@@ -308,6 +308,8 @@
 
     /* ── Placed sticker ── */
     .placed-sticker {
+      --s-scale: 1;
+      --s-rotate: 0deg;
       position: absolute;
       font-size: 36px;
       cursor: grab;
@@ -316,19 +318,19 @@
       pointer-events: all;
       line-height: 1;
       touch-action: none;
-      transform: translate(-50%, -50%);
+      transform: translate(-50%, -50%) scale(var(--s-scale)) rotate(var(--s-rotate));
       filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
       transition: filter 0.15s, transform 0.15s;
     }
     .placed-sticker:active { cursor: grabbing; }
     .placed-sticker.over-trash {
       filter: drop-shadow(0 0 8px rgba(255,80,80,0.9));
-      transform: translate(-50%, -50%) scale(0.75);
+      transform: translate(-50%, -50%) scale(calc(var(--s-scale) * 0.75)) rotate(var(--s-rotate));
     }
     @keyframes sticker-pop-out {
-      0%   { transform: translate(-50%,-50%) scale(1);   opacity: 1; }
-      40%  { transform: translate(-50%,-50%) scale(1.2); opacity: 0.6; }
-      100% { transform: translate(-50%,-50%) scale(0);   opacity: 0; }
+      0%   { transform: translate(-50%,-50%) scale(var(--s-scale)) rotate(var(--s-rotate)); opacity: 1; }
+      40%  { transform: translate(-50%,-50%) scale(calc(var(--s-scale) * 1.2)) rotate(var(--s-rotate)); opacity: 0.6; }
+      100% { transform: translate(-50%,-50%) scale(0) rotate(var(--s-rotate)); opacity: 0; }
     }
     .placed-sticker.deleting {
       animation: sticker-pop-out 0.28s ease forwards;
@@ -338,20 +340,19 @@
     /* ── Trash zone — small pill at bottom center ── */
     #trash-zone {
       position: absolute;
-      bottom: 16px;
+      bottom: 24px;
       left: 50%;
       transform: translateX(-50%);
-      width: 140px;
-      height: 44px;
+      width: 48px;
+      height: 48px;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
       background: rgba(30,30,30,0.75);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
       border: 1.5px solid rgba(255,80,80,0.5);
-      border-radius: 40px;
+      border-radius: 50%;
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.2s ease, transform 0.2s ease, background 0.15s;
@@ -364,20 +365,13 @@
     #trash-zone.hot {
       background: rgba(200,30,30,0.85);
       border-color: rgba(255,80,80,0.9);
-      transform: translateX(-50%) scale(1.08);
+      transform: translateX(-50%) scale(1.15);
     }
     #trash-zone .trash-icon {
-      font-size: 18px;
+      font-size: 22px;
       transition: transform 0.15s;
     }
     #trash-zone.hot .trash-icon { transform: scale(1.2); }
-    #trash-zone .trash-label {
-      font-size: 10px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: rgba(255,255,255,0.9);
-      font-weight: 600;
-    }
 
     /* ── Done view ── */
     .done-view {
@@ -698,7 +692,6 @@
       <!-- Trash zone — appears when dragging a sticker -->
       <div id="trash-zone">
         <span class="trash-icon">🗑️</span>
-        <span class="trash-label">Drag here to remove</span>
       </div>
       <button id="cancel-btn" onclick="retake()" title="Cancel">✕</button>
     </div>
@@ -1073,6 +1066,8 @@
     s.textContent = emoji;
     s.style.left = (25 + Math.random()*50) + '%';
     s.style.top  = (25 + Math.random()*50) + '%';
+    s.dataset.scale = 1;
+    s.dataset.rotation = 0;
     layer.appendChild(s);
     makeDraggable(s);
   }
@@ -1086,8 +1081,8 @@
   function isOverTrash(clientX, clientY) {
     const zone = document.getElementById('trash-zone');
     const rect = zone.getBoundingClientRect();
-    // Add generous touch padding around the pill
-    const pad = 16;
+    // Add generous touch padding around the smaller pill
+    const pad = 24;
     return (
       clientX >= rect.left  - pad &&
       clientX <= rect.right + pad &&
@@ -1104,46 +1099,88 @@
 
   function makeDraggable(el) {
     let startX, startY, startLeft, startTop, isDragging = false;
+    let initialDistance = null, initialAngle = null;
+    let initialScale = 1, initialRotation = 0;
+    
     const pct = (px, dim) => (px / dim) * 100;
+    
+    function getDistance(t1, t2) {
+      return Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+    }
+    function getAngle(t1, t2) {
+      return Math.atan2(t2.clientY - t1.clientY, t2.clientX - t1.clientX) * 180 / Math.PI;
+    }
 
     /* ── TOUCH ── */
     el.addEventListener('touchstart', e => {
       e.stopPropagation();
-      isDragging = true;
-      const t = e.touches[0];
-      startX = t.clientX; startY = t.clientY;
-      startLeft = parseFloat(el.style.left);
-      startTop  = parseFloat(el.style.top);
-      showTrash();
+      if (e.touches.length === 1) {
+        isDragging = true;
+        const t = e.touches[0];
+        startX = t.clientX; startY = t.clientY;
+        startLeft = parseFloat(el.style.left);
+        startTop  = parseFloat(el.style.top);
+        showTrash();
+      } else if (e.touches.length === 2) {
+        isDragging = false; // Disable dragging during pinch
+        hideTrash();
+        el.style.transition = 'none'; // Avoid lag during pinch
+        initialDistance = getDistance(e.touches[0], e.touches[1]);
+        if (initialDistance === 0) initialDistance = 1;
+        initialAngle = getAngle(e.touches[0], e.touches[1]);
+        initialScale = parseFloat(el.dataset.scale) || 1;
+        initialRotation = parseFloat(el.dataset.rotation) || 0;
+      }
     }, { passive: true });
 
     el.addEventListener('touchmove', e => {
-      if (!isDragging) return;
       e.stopPropagation(); e.preventDefault();
-      const t = e.touches[0];
-      const r = el.parentElement.getBoundingClientRect();
-      el.style.left = Math.min(95, Math.max(5, startLeft + pct(t.clientX - startX, r.width)))  + '%';
-      el.style.top  = Math.min(95, Math.max(5, startTop  + pct(t.clientY - startY, r.height))) + '%';
+      
+      if (e.touches.length === 2 && initialDistance) {
+        const currentDistance = getDistance(e.touches[0], e.touches[1]);
+        const currentAngle = getAngle(e.touches[0], e.touches[1]);
+        
+        let newScale = initialScale * (currentDistance / initialDistance);
+        newScale = Math.min(Math.max(newScale, 0.3), 5.0); // Limit scale
+        const newRotation = initialRotation + (currentAngle - initialAngle);
+        
+        el.dataset.scale = newScale;
+        el.dataset.rotation = newRotation;
+        el.style.setProperty('--s-scale', newScale);
+        el.style.setProperty('--s-rotate', `${newRotation}deg`);
+        
+      } else if (e.touches.length === 1 && isDragging) {
+        const t = e.touches[0];
+        const r = el.parentElement.getBoundingClientRect();
+        el.style.left = Math.min(95, Math.max(5, startLeft + pct(t.clientX - startX, r.width)))  + '%';
+        el.style.top  = Math.min(95, Math.max(5, startTop  + pct(t.clientY - startY, r.height))) + '%';
 
-      // Highlight trash when hovering over it
-      if (isOverTrash(t.clientX, t.clientY)) {
-        trashZone.classList.add('hot');
-        el.classList.add('over-trash');
-      } else {
-        trashZone.classList.remove('hot');
-        el.classList.remove('over-trash');
+        // Highlight trash when hovering over it
+        if (isOverTrash(t.clientX, t.clientY)) {
+          trashZone.classList.add('hot');
+          el.classList.add('over-trash');
+        } else {
+          trashZone.classList.remove('hot');
+          el.classList.remove('over-trash');
+        }
       }
     }, { passive: false });
 
     el.addEventListener('touchend', e => {
-      if (!isDragging) return;
-      isDragging = false;
-      const t = e.changedTouches[0];
-      if (isOverTrash(t.clientX, t.clientY)) {
-        deleteSticker(el);
-      } else {
-        el.classList.remove('over-trash');
-        hideTrash();
+      if (e.touches.length < 2) {
+        initialDistance = null;
+        initialAngle = null;
+        el.style.transition = ''; // Restore transition
+      }
+      if (isDragging && e.touches.length === 0) {
+        isDragging = false;
+        const t = e.changedTouches[0];
+        if (isOverTrash(t.clientX, t.clientY)) {
+          deleteSticker(el);
+        } else {
+          el.classList.remove('over-trash');
+          hideTrash();
+        }
       }
     });
 
@@ -1209,12 +1246,22 @@
         layer.querySelectorAll('.placed-sticker').forEach(s => {
           const sx = w * parseFloat(s.style.left)  / 100;
           const sy = h * parseFloat(s.style.top)   / 100;
+          
+          const scale = parseFloat(s.dataset.scale) || 1;
+          const rotation = parseFloat(s.dataset.rotation) || 0;
+          
           // Scale sticker size proportionally — thumb gets smaller stickers
-          const sfs = Math.round(w * (size === 'thumb' ? 0.12 : 0.10));
+          const sfs = Math.round(w * (size === 'thumb' ? 0.12 : 0.10) * scale);
+          
+          ctx.save();
+          ctx.translate(sx, sy);
+          ctx.rotate(rotation * Math.PI / 180);
+          
           ctx.font = `${sfs}px serif`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillText(s.textContent, sx, sy);
+          ctx.fillText(s.textContent, 0, 0); // draw at 0,0 since we translated
+          ctx.restore();
         });
 
         // Thumb: lower quality; Full: higher quality
