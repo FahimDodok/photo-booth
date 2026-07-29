@@ -254,39 +254,47 @@
 
     .btn-outline {
       flex: 1;
-      background: transparent;
-      border: 1px solid var(--gold-dim);
-      color: var(--ivory-dim);
-      padding: 11px 0;
-      border-radius: 10px;
+      background: rgba(253, 248, 240, 0.1);
+      border: 1px solid var(--gold);
+      color: var(--ivory);
+      padding: 14px 0;
+      border-radius: 12px;
       font-family: 'Poppins', sans-serif;
-      font-size: 12px;
-      font-weight: 500;
-      letter-spacing: 0.1em;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
       cursor: pointer;
       transition: all 0.2s;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    .btn-outline:active {
+      transform: scale(0.96);
     }
 
     .btn-submit {
       flex: 1;
       background: var(--gold);
-      border: 1px solid var(--gold);
+      border: none;
       color: var(--navy);
-      padding: 11px 0;
-      border-radius: 10px;
+      padding: 14px 0;
+      border-radius: 12px;
       font-family: 'Poppins', sans-serif;
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 0.1em;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
       cursor: pointer;
       transition: all 0.2s;
+      box-shadow: 0 4px 12px rgba(201, 168, 76, 0.3);
     }
-
+    .btn-submit:active {
+      transform: scale(0.96);
+    }
     .btn-submit:disabled {
-      opacity: 0.4;
+      opacity: 0.5;
       cursor: not-allowed;
+      box-shadow: none;
     }
 
     /* ── Frame selector ── */
@@ -390,8 +398,8 @@
       --s-rotate: 0deg;
       position: absolute;
       font-size: 36px;
-      padding: 32px;
-      /* Large padding to expand the touch area (hitbox) */
+      padding: 0;
+      /* Precise hitbox */
       cursor: grab;
       user-select: none;
       -webkit-user-select: none;
@@ -915,12 +923,17 @@
       font-weight: 600;
       color: var(--gold);
     }
+    .text-modal-content {
+      flex: 1;
+      display: flex;
+      position: relative;
+    }
     .tm-input-wrapper {
       flex: 1;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 20px;
+      padding: 20px 80px 20px 20px;
     }
     #tm-input {
       width: 100%;
@@ -938,18 +951,20 @@
       color: rgba(255, 255, 255, 0.3);
     }
     .tm-tools {
-      padding: 20px;
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
       display: flex;
       flex-direction: column;
-      gap: 20px;
-      background: rgba(0,0,0,0.3);
+      gap: 24px;
+      align-items: center;
     }
     .tm-row {
       display: flex;
-      justify-content: center;
+      flex-direction: column;
       gap: 12px;
-      overflow-x: auto;
-      padding-bottom: 8px;
+      align-items: center;
     }
     .tm-font-btn {
       width: 44px;
@@ -1079,23 +1094,25 @@
         <button class="tm-close" onclick="closeTextModal()">Cancel</button>
         <button class="tm-done" onclick="confirmText()">Done</button>
       </div>
-      <div class="tm-input-wrapper">
-        <textarea id="tm-input" rows="3" placeholder="Type text or emoji..."></textarea>
-      </div>
-      <div class="tm-tools">
-        <div class="tm-row tm-fonts" id="tm-font-row">
-          <button class="tm-font-btn active" style="font-family: 'Poppins', sans-serif;" onclick="selectFont('\'Poppins\', sans-serif', this)">A</button>
-          <button class="tm-font-btn" style="font-family: 'Great Vibes', cursive; font-size: 24px;" onclick="selectFont('\'Great Vibes\', cursive', this)">A</button>
-          <button class="tm-font-btn" style="font-family: 'Playfair Display', serif;" onclick="selectFont('\'Playfair Display\', serif', this)">A</button>
-          <button class="tm-font-btn" style="font-family: serif;" onclick="selectFont('serif', this)">A</button>
+      <div class="text-modal-content">
+        <div class="tm-input-wrapper">
+          <textarea id="tm-input" rows="3" placeholder="Type text or emoji..."></textarea>
         </div>
-        <div class="tm-row tm-colors" id="tm-color-row">
-          <button class="tm-color-btn active" style="background: #ffffff;" onclick="selectColor('#ffffff', this)"></button>
-          <button class="tm-color-btn" style="background: #0f1b3d;" onclick="selectColor('#0f1b3d', this)"></button>
-          <button class="tm-color-btn" style="background: #c9a84c;" onclick="selectColor('#c9a84c', this)"></button>
-          <button class="tm-color-btn" style="background: #ff5050;" onclick="selectColor('#ff5050', this)"></button>
-          <button class="tm-color-btn" style="background: #87ceeb;" onclick="selectColor('#87ceeb', this)"></button>
-          <button class="tm-color-btn" style="background: #ffb6c1;" onclick="selectColor('#ffb6c1', this)"></button>
+        <div class="tm-tools">
+          <div class="tm-row tm-fonts" id="tm-font-row">
+            <button class="tm-font-btn active" style="font-family: 'Poppins', sans-serif;" onclick="selectFont('\'Poppins\', sans-serif', this)">A</button>
+            <button class="tm-font-btn" style="font-family: 'Great Vibes', cursive; font-size: 24px;" onclick="selectFont('\'Great Vibes\', cursive', this)">A</button>
+            <button class="tm-font-btn" style="font-family: 'Playfair Display', serif;" onclick="selectFont('\'Playfair Display\', serif', this)">A</button>
+            <button class="tm-font-btn" style="font-family: serif;" onclick="selectFont('serif', this)">A</button>
+          </div>
+          <div class="tm-row tm-colors" id="tm-color-row">
+            <button class="tm-color-btn active" style="background: #ffffff;" onclick="selectColor('#ffffff', this)"></button>
+            <button class="tm-color-btn" style="background: #0f1b3d;" onclick="selectColor('#0f1b3d', this)"></button>
+            <button class="tm-color-btn" style="background: #c9a84c;" onclick="selectColor('#c9a84c', this)"></button>
+            <button class="tm-color-btn" style="background: #ff5050;" onclick="selectColor('#ff5050', this)"></button>
+            <button class="tm-color-btn" style="background: #87ceeb;" onclick="selectColor('#87ceeb', this)"></button>
+            <button class="tm-color-btn" style="background: #ffb6c1;" onclick="selectColor('#ffb6c1', this)"></button>
+          </div>
         </div>
       </div>
     </div>
@@ -1411,11 +1428,39 @@
     ══════════════════════════════════════════ */
     let currentTmFont = "'Poppins', sans-serif";
     let currentTmColor = "#ffffff";
+    let editingSticker = null;
 
     function openTextModal() {
+      editingSticker = null;
       document.getElementById('text-modal').classList.add('open');
       const input = document.getElementById('tm-input');
       input.value = '';
+      selectFont("'Poppins', sans-serif", document.querySelectorAll('.tm-font-btn')[0]);
+      selectColor("#ffffff", document.querySelectorAll('.tm-color-btn')[0]);
+      input.focus();
+    }
+
+    function editSticker(el) {
+      editingSticker = el;
+      document.getElementById('text-modal').classList.add('open');
+      const input = document.getElementById('tm-input');
+      input.value = el.textContent;
+      
+      const font = el.dataset.font || "'Poppins', sans-serif";
+      const color = el.dataset.color || "#ffffff";
+      
+      // Select the correct font
+      document.querySelectorAll('.tm-font-btn').forEach(b => {
+        b.classList.toggle('active', b.style.fontFamily.replace(/"/g, "'").includes(font.replace(/"/g, "'").split(',')[0]));
+      });
+      // Removing color active state since exact rgb match is tricky
+      document.querySelectorAll('.tm-color-btn').forEach(b => b.classList.remove('active'));
+      
+      currentTmFont = font;
+      currentTmColor = color;
+      input.style.fontFamily = font;
+      input.style.color = color;
+      
       input.focus();
     }
 
@@ -1427,14 +1472,14 @@
       currentTmFont = font;
       document.getElementById('tm-input').style.fontFamily = font;
       document.querySelectorAll('.tm-font-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
+      if(btn) btn.classList.add('active');
     }
 
     function selectColor(color, btn) {
       currentTmColor = color;
       document.getElementById('tm-input').style.color = color;
       document.querySelectorAll('.tm-color-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
+      if(btn) btn.classList.add('active');
     }
 
     function confirmText() {
@@ -1442,24 +1487,29 @@
       const text = input.value.trim();
       closeTextModal();
       
-      if (!text) return;
+      if (!text) {
+        if (editingSticker) deleteSticker(editingSticker);
+        return;
+      }
 
-      const layer = document.getElementById('sticker-layer');
-      const s = document.createElement('div');
-      s.className = 'placed-sticker';
+      let s = editingSticker;
+      if (!s) {
+        const layer = document.getElementById('sticker-layer');
+        s = document.createElement('div');
+        s.className = 'placed-sticker';
+        s.style.left = (25 + Math.random() * 50) + '%';
+        s.style.top = (25 + Math.random() * 50) + '%';
+        s.dataset.scale = 1;
+        s.dataset.rotation = 0;
+        layer.appendChild(s);
+        makeDraggable(s);
+      }
+      
       s.textContent = text;
-      s.style.left = (25 + Math.random() * 50) + '%';
-      s.style.top = (25 + Math.random() * 50) + '%';
       s.style.fontFamily = currentTmFont;
       s.style.color = currentTmColor;
-      
-      s.dataset.scale = 1;
-      s.dataset.rotation = 0;
       s.dataset.font = currentTmFont;
       s.dataset.color = currentTmColor;
-      
-      layer.appendChild(s);
-      makeDraggable(s);
     }
 
     /* ── Trash zone helpers ── */
@@ -1471,7 +1521,6 @@
     function isOverTrash(clientX, clientY) {
       const zone = document.getElementById('trash-zone');
       const rect = zone.getBoundingClientRect();
-      // Add generous touch padding around the smaller pill
       const pad = 24;
       return (
         clientX >= rect.left - pad &&
@@ -1491,6 +1540,9 @@
       let startX, startY, startLeft, startTop, isDragging = false;
       let initialDistance = null, initialAngle = null;
       let initialScale = 1, initialRotation = 0;
+      
+      let touchStartTime = 0;
+      let isTap = true;
 
       const pct = (px, dim) => (px / dim) * 100;
 
@@ -1501,37 +1553,32 @@
         return Math.atan2(t2.clientY - t1.clientY, t2.clientX - t1.clientX) * 180 / Math.PI;
       }
 
-      /* ── TOUCH ── */
-      el.addEventListener('touchstart', e => {
-        e.stopPropagation();
-        if (e.touches.length === 1) {
-          isDragging = true;
-          const t = e.touches[0];
-          startX = t.clientX; startY = t.clientY;
-          startLeft = parseFloat(el.style.left);
-          startTop = parseFloat(el.style.top);
-          showTrash();
-        } else if (e.touches.length === 2) {
-          isDragging = false; // Disable dragging during pinch
+      const onGlobalTouchStart = (e) => {
+        if (!isDragging) return;
+        if (e.touches.length === 2) {
+          isDragging = false;
+          isTap = false;
           hideTrash();
-          el.style.transition = 'none'; // Avoid lag during pinch
+          el.style.transition = 'none';
           initialDistance = getDistance(e.touches[0], e.touches[1]);
           if (initialDistance === 0) initialDistance = 1;
           initialAngle = getAngle(e.touches[0], e.touches[1]);
           initialScale = parseFloat(el.dataset.scale) || 1;
           initialRotation = parseFloat(el.dataset.rotation) || 0;
         }
-      }, { passive: true });
+      };
 
-      el.addEventListener('touchmove', e => {
-        e.stopPropagation(); e.preventDefault();
-
+      const onGlobalTouchMove = (e) => {
+        if (!isDragging && initialDistance == null) return;
+        isTap = false;
+        
         if (e.touches.length === 2 && initialDistance) {
+          e.preventDefault();
           const currentDistance = getDistance(e.touches[0], e.touches[1]);
           const currentAngle = getAngle(e.touches[0], e.touches[1]);
 
           let newScale = initialScale * (currentDistance / initialDistance);
-          newScale = Math.min(Math.max(newScale, 0.3), 5.0); // Limit scale
+          newScale = Math.min(Math.max(newScale, 0.3), 5.0);
           const newRotation = initialRotation + (currentAngle - initialAngle);
 
           el.dataset.scale = newScale;
@@ -1540,12 +1587,12 @@
           el.style.setProperty('--s-rotate', `${newRotation}deg`);
 
         } else if (e.touches.length === 1 && isDragging) {
+          e.preventDefault();
           const t = e.touches[0];
           const r = el.parentElement.getBoundingClientRect();
           el.style.left = Math.min(95, Math.max(5, startLeft + pct(t.clientX - startX, r.width))) + '%';
           el.style.top = Math.min(95, Math.max(5, startTop + pct(t.clientY - startY, r.height))) + '%';
 
-          // Highlight trash when hovering over it
           if (isOverTrash(t.clientX, t.clientY)) {
             trashZone.classList.add('hot');
             el.classList.add('over-trash');
@@ -1554,30 +1601,60 @@
             el.classList.remove('over-trash');
           }
         }
-      }, { passive: false });
+      };
 
-      el.addEventListener('touchend', e => {
+      const onGlobalTouchEnd = (e) => {
         if (e.touches.length < 2) {
           initialDistance = null;
           initialAngle = null;
-          el.style.transition = ''; // Restore transition
+          el.style.transition = ''; 
         }
-        if (isDragging && e.touches.length === 0) {
-          isDragging = false;
-          const t = e.changedTouches[0];
-          if (isOverTrash(t.clientX, t.clientY)) {
-            deleteSticker(el);
-          } else {
-            el.classList.remove('over-trash');
-            hideTrash();
+        if (e.touches.length === 0) {
+          document.removeEventListener('touchstart', onGlobalTouchStart);
+          document.removeEventListener('touchmove', onGlobalTouchMove);
+          document.removeEventListener('touchend', onGlobalTouchEnd);
+          
+          if (isDragging || initialDistance == null) {
+            isDragging = false;
+            const t = e.changedTouches[0];
+            if (t && isOverTrash(t.clientX, t.clientY)) {
+              deleteSticker(el);
+            } else {
+              el.classList.remove('over-trash');
+              hideTrash();
+              
+              if (isTap && (Date.now() - touchStartTime < 300)) {
+                editSticker(el);
+              }
+            }
           }
         }
-      });
+      };
+
+      el.addEventListener('touchstart', e => {
+        if (e.touches.length === 1) {
+          e.stopPropagation();
+          isDragging = true;
+          isTap = true;
+          touchStartTime = Date.now();
+          const t = e.touches[0];
+          startX = t.clientX; startY = t.clientY;
+          startLeft = parseFloat(el.style.left);
+          startTop = parseFloat(el.style.top);
+          showTrash();
+          
+          document.addEventListener('touchstart', onGlobalTouchStart, { passive: true });
+          document.addEventListener('touchmove', onGlobalTouchMove, { passive: false });
+          document.addEventListener('touchend', onGlobalTouchEnd);
+        }
+      }, { passive: true });
 
       /* ── MOUSE ── */
       el.addEventListener('mousedown', e => {
         e.stopPropagation();
         isDragging = true;
+        isTap = true;
+        touchStartTime = Date.now();
         const r = el.parentElement.getBoundingClientRect();
         startX = e.clientX; startY = e.clientY;
         startLeft = parseFloat(el.style.left);
@@ -1586,6 +1663,7 @@
 
         const onMove = e => {
           if (!isDragging) return;
+          isTap = false;
           el.style.left = Math.min(95, Math.max(5, startLeft + pct(e.clientX - startX, r.width))) + '%';
           el.style.top = Math.min(95, Math.max(5, startTop + pct(e.clientY - startY, r.height))) + '%';
           if (isOverTrash(e.clientX, e.clientY)) {
@@ -1606,6 +1684,9 @@
           } else {
             el.classList.remove('over-trash');
             hideTrash();
+            if (isTap && (Date.now() - touchStartTime < 300)) {
+              editSticker(el);
+            }
           }
         };
 
