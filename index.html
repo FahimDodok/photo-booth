@@ -335,35 +335,45 @@
       pointer-events: none;
     }
 
-    /* ── Trash zone (appears at bottom of preview while dragging) ── */
+    /* ── Trash zone — small pill at bottom center ── */
     #trash-zone {
       position: absolute;
-      bottom: 0; left: 0; right: 0;
-      height: 72px;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 140px;
+      height: 44px;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      background: linear-gradient(to top, rgba(180,30,30,0.85), transparent);
+      gap: 6px;
+      background: rgba(30,30,30,0.75);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1.5px solid rgba(255,80,80,0.5);
+      border-radius: 40px;
       opacity: 0;
       pointer-events: none;
-      transition: opacity 0.25s ease;
+      transition: opacity 0.2s ease, transform 0.2s ease, background 0.15s;
       z-index: 20;
-      border-radius: 0 0 0 0;
     }
-    #trash-zone.visible { opacity: 1; }
+    #trash-zone.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
     #trash-zone.hot {
-      background: linear-gradient(to top, rgba(220,30,30,0.95), transparent);
+      background: rgba(200,30,30,0.85);
+      border-color: rgba(255,80,80,0.9);
+      transform: translateX(-50%) scale(1.08);
     }
     #trash-zone .trash-icon {
-      font-size: 26px;
-      filter: drop-shadow(0 0 6px rgba(255,100,100,0.8));
+      font-size: 18px;
       transition: transform 0.15s;
     }
     #trash-zone.hot .trash-icon { transform: scale(1.2); }
     #trash-zone .trash-label {
-      font-size: 11px;
-      letter-spacing: 0.14em;
+      font-size: 10px;
+      letter-spacing: 0.1em;
       text-transform: uppercase;
       color: rgba(255,255,255,0.9);
       font-weight: 600;
@@ -1073,11 +1083,17 @@
   function showTrash() { trashZone.classList.add('visible'); }
   function hideTrash() { trashZone.classList.remove('visible', 'hot'); }
 
-  function isOverTrash(clientY) {
-    const wrapper = document.getElementById('preview-wrapper');
-    const rect    = wrapper.getBoundingClientRect();
-    // Bottom 20% of the preview triggers the trash
-    return clientY > rect.bottom - rect.height * 0.22;
+  function isOverTrash(clientX, clientY) {
+    const zone = document.getElementById('trash-zone');
+    const rect = zone.getBoundingClientRect();
+    // Add generous touch padding around the pill
+    const pad = 16;
+    return (
+      clientX >= rect.left  - pad &&
+      clientX <= rect.right + pad &&
+      clientY >= rect.top   - pad &&
+      clientY <= rect.bottom + pad
+    );
   }
 
   function deleteSticker(el) {
@@ -1110,7 +1126,7 @@
       el.style.top  = Math.min(95, Math.max(5, startTop  + pct(t.clientY - startY, r.height))) + '%';
 
       // Highlight trash when hovering over it
-      if (isOverTrash(t.clientY)) {
+      if (isOverTrash(t.clientX, t.clientY)) {
         trashZone.classList.add('hot');
         el.classList.add('over-trash');
       } else {
@@ -1123,7 +1139,7 @@
       if (!isDragging) return;
       isDragging = false;
       const t = e.changedTouches[0];
-      if (isOverTrash(t.clientY)) {
+      if (isOverTrash(t.clientX, t.clientY)) {
         deleteSticker(el);
       } else {
         el.classList.remove('over-trash');
@@ -1145,7 +1161,7 @@
         if (!isDragging) return;
         el.style.left = Math.min(95, Math.max(5, startLeft + pct(e.clientX - startX, r.width)))  + '%';
         el.style.top  = Math.min(95, Math.max(5, startTop  + pct(e.clientY - startY, r.height))) + '%';
-        if (isOverTrash(e.clientY)) {
+        if (isOverTrash(e.clientX, e.clientY)) {
           trashZone.classList.add('hot');
           el.classList.add('over-trash');
         } else {
@@ -1158,7 +1174,7 @@
         isDragging = false;
         document.removeEventListener('mousemove', onMove);
         document.removeEventListener('mouseup', onUp);
-        if (isOverTrash(e.clientY)) {
+        if (isOverTrash(e.clientX, e.clientY)) {
           deleteSticker(el);
         } else {
           el.classList.remove('over-trash');
