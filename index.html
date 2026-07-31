@@ -79,7 +79,7 @@
     }
     #editor-overlay.open { display: flex; }
 
-    /* Photo area — fills all space above toolbar */
+    /* Photo area — 3:4 aspect ratio matching gallery card crop */
     #editor-photo-wrap {
       position: relative;
       flex: 1;
@@ -88,11 +88,14 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      /* Cap width so photo doesn't stretch on wide screens */
+      max-width: 100%;
     }
     #preview-img {
       width: 100%;
       height: 100%;
-      object-fit: contain;
+      object-fit: cover;    /* match gallery card crop */
+      object-position: center;
       display: block;
       image-orientation: from-image;
     }
@@ -264,12 +267,60 @@
     .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 
     /* ══ TEXT MODAL ══ */
-    #text-modal { position: fixed; inset: 0; z-index: 100000; background: rgba(0,0,0,0.7); display: none; flex-direction: column; touch-action: none; }
+    #text-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 100000;
+      background: rgba(0,0,0,0.75);
+      display: none;
+      flex-direction: column;
+      touch-action: none;
+      /* will be adjusted by JS to sit above keyboard */
+    }
     #text-modal.open { display: flex; }
-    .text-modal-header { display: flex; justify-content: flex-end; padding: 16px 20px; }
-    .tm-done { background: transparent; border: none; font-size: 18px; font-family: 'Poppins', sans-serif; cursor: pointer; font-weight: 700; color: var(--gold); }
-    .text-modal-content { flex: 1; display: flex; flex-direction: column; justify-content: center; padding-bottom: 20vh; }
-    .tm-input-wrapper { display: flex; align-items: center; justify-content: center; padding: 20px 60px 20px 70px; position: relative; }
+
+    /* Done button — top right */
+    .text-modal-header {
+      display: flex;
+      justify-content: flex-end;
+      padding: 16px 20px 8px;
+      flex-shrink: 0;
+    }
+    .tm-done {
+      background: transparent;
+      border: none;
+      font-size: 18px;
+      font-family: 'Poppins', sans-serif;
+      cursor: pointer;
+      font-weight: 700;
+      color: var(--gold);
+      padding: 4px 8px;
+    }
+
+    /* Text input area — grows to fill space between header and toolbar */
+    .text-modal-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .tm-input-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 60px 12px 70px;
+      position: relative;
+    }
+
+    /* Toolbar pinned above keyboard — controlled by JS */
+    #tm-toolbar {
+      flex-shrink: 0;
+      background: rgba(20,20,20,0.97);
+      border-top: 1px solid rgba(255,255,255,0.1);
+      padding: 10px 0 12px;
+    }
 
     /* Bigger size slider */
     .tm-size-slider-wrapper { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); height: 240px; width: 44px; display: flex; align-items: center; justify-content: center; }
@@ -418,7 +469,7 @@
       </div>
       <textarea id="tm-input" rows="3" placeholder="Type text or emoji..."></textarea>
     </div>
-    <div class="tm-tools">
+    <div id="tm-toolbar"><div class="tm-tools">
       <!-- Fonts first -->
       <div class="tm-row tm-fonts">
         <button class="tm-font-btn active" style="font-family:'Poppins',sans-serif;" onclick="selectFont('\'Poppins\',sans-serif',this)">Aa</button>
@@ -743,6 +794,15 @@
   function openTextModal() {
     editingSticker = null;
     document.getElementById('text-modal').classList.add('open');
+    // Trigger viewport adjustment after keyboard appears (~300ms)
+    if (window.visualViewport) {
+      setTimeout(() => {
+        const vv = window.visualViewport;
+        const modal = document.getElementById('text-modal');
+        modal.style.top    = vv.offsetTop + 'px';
+        modal.style.height = vv.height + 'px';
+      }, 350);
+    }
     const input = document.getElementById('tm-input');
     input.value = '';
     selectFont("'Poppins',sans-serif", document.querySelectorAll('.tm-font-btn')[0]);
@@ -756,6 +816,14 @@
   function editSticker(el) {
     editingSticker = el;
     document.getElementById('text-modal').classList.add('open');
+    if (window.visualViewport) {
+      setTimeout(() => {
+        const vv = window.visualViewport;
+        const modal = document.getElementById('text-modal');
+        modal.style.top    = vv.offsetTop + 'px';
+        modal.style.height = vv.height + 'px';
+      }, 350);
+    }
     const input = document.getElementById('tm-input');
     input.value = el.textContent;
     currentTmFont  = el.dataset.font  || "'Poppins',sans-serif";
@@ -810,7 +878,10 @@
   }
 
   function closeTextModal() {
-    document.getElementById('text-modal').classList.remove('open');
+    const modal = document.getElementById('text-modal');
+    modal.classList.remove('open');
+    modal.style.top    = '0';
+    modal.style.height = '100%';
   }
 
   function confirmText() {
@@ -998,6 +1069,46 @@
       img.src = srcData;
     });
   }
+
+  /* ══════════════════════════════════════════
+     VISUAL VIEWPORT — keeps text modal toolbar
+     above the keyboard on all mobile browsers
+  ══════════════════════════════════════════ */
+  (function setupViewport() {
+    const modal = document.getElementById('text-modal');
+
+    function adjustForKeyboard() {
+      if (!modal.classList.contains('open')) return;
+      const vv = window.visualViewport;
+      if (!vv) return;
+
+      // visualViewport.offsetTop = how much the viewport is pushed down (usually 0)
+      // visualViewport.height = visible height above keyboard
+      const vvTop    = vv.offsetTop;
+      const vvHeight = vv.height;
+
+      // Pin modal to the visible viewport area
+      modal.style.position = 'fixed';
+      modal.style.top      = vvTop + 'px';
+      modal.style.height   = vvHeight + 'px';
+      modal.style.left     = '0';
+      modal.style.right    = '0';
+    }
+
+    function resetViewport() {
+      modal.style.top    = '0';
+      modal.style.height = '100%';
+    }
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', adjustForKeyboard);
+      window.visualViewport.addEventListener('scroll', adjustForKeyboard);
+    }
+
+    // Also adjust when modal opens
+    const origOpen = openTextModal;
+    window.openTextModalOrig = origOpen;
+  })();
 
   /* ── Toast ── */
   function showToast() {
