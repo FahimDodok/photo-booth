@@ -64,6 +64,16 @@
     .done-icon { font-size: 44px; }
     .done-title { font-family: 'Playfair Display', serif; font-size: 22px; color: var(--ivory); }
     .done-sub { font-size: 12px; color: var(--ivory-dim); line-height: 1.7; }
+    .done-view img#done-preview {
+      width: 160px;
+      height: 213px;
+      object-fit: cover;
+      border-radius: 14px;
+      border: 1px solid var(--gold-dim);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+      display: none;
+    }
+    .done-gallery-link { color: var(--gold); font-size: 12px; text-decoration: underline; background: none; border: none; cursor: pointer; font-family: 'Poppins', sans-serif; }
     .btn-again { margin-top: 4px; background: transparent; border: 1px solid var(--gold); color: var(--gold); padding: 10px 28px; border-radius: 10px; font-family: 'Poppins', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; transition: all 0.2s; }
 
     /* ══ FULLSCREEN EDITOR OVERLAY ══ */
@@ -365,12 +375,33 @@
     .photo-count-dark { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(15,27,61,0.45); text-align: center; margin-bottom: 14px; }
     .photo-count-dark span { color: var(--navy); font-weight: 600; }
     .gallery-empty-dark { font-size: 13px; color: rgba(15,27,61,0.35); text-align: center; padding: 28px 0; width: 100%; }
-    .gallery-track { display: flex; overflow-x: auto; gap: 14px; padding: 4px 0 12px; -webkit-overflow-scrolling: touch; scrollbar-width: thin; scrollbar-color: var(--gold-dim) transparent; }
+    .gallery-track {
+      display: flex;
+      overflow-x: auto;
+      gap: 14px;
+      padding: 4px 0 12px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+      scrollbar-color: var(--gold-dim) transparent;
+      /* Forces iOS Safari to keep this layer composited/painted so
+         dynamically-inserted cards show up without needing another
+         repaint to be triggered elsewhere on the page. */
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
+    }
     .gallery-track::-webkit-scrollbar { height: 3px; }
     .gallery-track::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 2px; }
-    .g-card { flex-shrink: 0; width: 200px; background: white; border: 1px solid var(--gold-dim); border-radius: 14px; overflow: hidden; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 2px 12px rgba(15,27,61,0.08); }
+    .g-card {
+      flex-shrink: 0; width: 200px; background: white; border: 1px solid var(--gold-dim); border-radius: 14px; overflow: hidden; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 2px 12px rgba(15,27,61,0.08);
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
+    }
     .g-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(15,27,61,0.12); }
-    .g-card .thumb { width: 100%; height: 240px; object-fit: cover; display: block; image-orientation: from-image; background: #f0ece4; }
+    .g-card .thumb {
+      width: 100%; height: 240px; object-fit: cover; display: block; image-orientation: from-image; background: #f0ece4;
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
+    }
     .g-card .thumb-skeleton { width: 100%; height: 240px; background: linear-gradient(90deg, #f0ece4 25%, #e8e2d9 50%, #f0ece4 75%); background-size: 200% 100%; animation: shimmer-load 1.4s infinite; }
     @keyframes shimmer-load { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
     .g-note { padding: 10px 12px; font-size: 12px; color: var(--navy); line-height: 1.5; border-top: 1px solid var(--gold-dim); }
@@ -414,8 +445,10 @@
     </div>
     <div id="done-view" class="done-view">
       <span class="done-icon">✨</span>
+      <img id="done-preview" alt="Your photo">
       <p class="done-title">Thank you!</p>
       <p class="done-sub">Your photo has been shared.<br>Enjoy the celebration!</p>
+      <button class="done-gallery-link" onclick="scrollToGallery()">View the gallery ↓</button>
       <button class="btn-again" onclick="takeAnother()">Take Another</button>
     </div>
   </div>
@@ -512,7 +545,7 @@
     <div class="g-corner br"></div>
     <p class="section-label-dark">✦ Guest Gallery ✦</p>
     <p class="photo-count-dark" id="photo-count" style="display:none;"><span id="photo-num">0</span> photos shared</p>
-    <p class="gallery-empty-dark" id="gallery-empty" style="display:block;">No photos yet&nbsp;&nbsp;📸</p>
+    <p class="gallery-empty-dark" id="gallery-empty" style="display:block;">Loading photos…</p>
     <div class="gallery-track" id="gallery"></div>
     <div id="load-more-wrap">
       <button class="btn-load-more" onclick="loadMore()">Load more</button>
@@ -564,6 +597,10 @@
     petalsActive = active;
     if (!active) document.querySelectorAll('.petal').forEach(p => p.remove());
   }
+
+  /* ── Force a reflow so iOS Safari repaints dynamically-inserted
+       content inside the horizontally-scrolling gallery track ── */
+  function forceReflow(el) { if (el) void el.offsetHeight; }
 
   /* ── Image processing ── */
   function resizeImage(bitmap, maxDim, quality) {
@@ -703,11 +740,12 @@
         bar.style.width    = '0%';
         btn.textContent    = 'Submit ✦'; // ← reset text
         btn.disabled       = false;      // ← ALWAYS re-enable
-        showDone();
+        showDone(finalFull);             // ← pass the final composed photo through
         togglePetals(true);
         showToast();
       }, 300);
     } catch (err) {
+      console.error('Submit failed:', err);
       prog.style.display = 'none';
       bar.style.width    = '0%';
       btn.textContent    = 'Try Again';
@@ -715,18 +753,31 @@
     }
   }
 
-  /* ── Show done screen ── */
-  function showDone() {
+  /* ── Show done screen (with a preview of what was just submitted) ── */
+  function showDone(previewSrc) {
     capturedThumb = capturedFull = null;
     document.getElementById('editor-overlay').classList.remove('open');
     document.body.style.overflow = '';
+    const preview = document.getElementById('done-preview');
+    if (previewSrc) {
+      preview.src = previewSrc;
+      preview.style.display = 'block';
+    } else {
+      preview.style.display = 'none';
+    }
     document.getElementById('done-view').style.display = 'flex';
+  }
+
+  function scrollToGallery() {
+    document.querySelector('.gallery-section').scrollIntoView({ behavior: 'smooth' });
   }
 
   /* ── Take another — clean slate ── */
   function takeAnother() {
     document.getElementById('done-view').style.display = 'none';
     document.getElementById('snap-area').style.display = 'flex';
+    document.getElementById('done-preview').src = '';
+    document.getElementById('done-preview').style.display = 'none';
     nativeInput.value = '';
     currentFrame = 'none';
     document.getElementById('sticker-layer').innerHTML = '';
@@ -1158,13 +1209,27 @@
     entries.reverse();
     totalCount = entries.length;
     updateCount(totalCount);
-    if (entries.length === 0) { emptyEl.style.display = 'block'; initialDone = true; return; }
+    if (entries.length === 0) {
+      emptyEl.textContent = 'No photos yet  📸';
+      emptyEl.style.display = 'block';
+      initialDone = true;
+      return;
+    }
     emptyEl.style.display = 'none';
     entries.forEach(item => { loadedItems[item.key] = item; });
     allKeys = entries.map(e => e.key);
     renderPage(0, PAGE_SIZE);
     renderedCount = Math.min(PAGE_SIZE, allKeys.length);
     if (allKeys.length > PAGE_SIZE) document.getElementById('load-more-wrap').style.display = 'block';
+    initialDone = true;
+    // iOS Safari sometimes fails to paint content inserted into a
+    // horizontally-scrolling flex container until something else
+    // forces a repaint — nudge it here so photos show immediately.
+    forceReflow(gallery);
+  }).catch(err => {
+    console.error('Gallery load failed:', err);
+    emptyEl.textContent = 'Could not load gallery — check your connection and refresh.';
+    emptyEl.style.display = 'block';
     initialDone = true;
   });
 
@@ -1180,7 +1245,8 @@
     updateCount(totalCount);
     emptyEl.style.display = 'none';
     gallery.insertBefore(makeCard(entry), gallery.firstChild);
-  });
+    forceReflow(gallery);
+  }, err => console.error('Gallery live-update failed:', err));
 
   function renderPage(from, count) {
     allKeys.slice(from, from+count).forEach(key => {
@@ -1192,6 +1258,7 @@
     renderPage(renderedCount, PAGE_SIZE);
     renderedCount = Math.min(renderedCount+PAGE_SIZE, allKeys.length);
     if (renderedCount >= allKeys.length) document.getElementById('load-more-wrap').style.display = 'none';
+    forceReflow(gallery);
   }
   function makeCard(item) {
     const card  = document.createElement('div');
