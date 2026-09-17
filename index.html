@@ -378,19 +378,18 @@
     #tm-input::placeholder { color: rgba(255,255,255,0.35); }
 
     /* Gallery empty helper reused for lightbox states etc. */
-    #lightbox { position: fixed; inset: 0; z-index: 99999; background: rgba(10,16,35,0.96); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); display: none; flex-direction: column; align-items: center; justify-content: center; padding: 20px; overflow: hidden; touch-action: pan-y; }
+    #lightbox { position: fixed; inset: 0; z-index: 99999; background: rgba(10,16,35,0.96); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); display: none; flex-direction: column; align-items: center; justify-content: center; padding: 20px; overflow: hidden; }
     #lightbox.open { display: flex; }
-    #lightbox-stage { position: relative; width: 100%; max-width: 100%; display: flex; align-items: center; justify-content: center; flex: 1; min-height: 0; overflow: hidden; }
-    #lightbox-img { max-width: 100%; max-height: 75dvh; border-radius: 14px; border: 1px solid var(--gold-dim); object-fit: contain; transition: opacity 0.2s, transform 0.28s ease; }
-    #lightbox-img.loading { opacity: 0.3; }
-    #lightbox-img.slide-out-left  { transform: translateX(-60px); opacity: 0; }
-    #lightbox-img.slide-out-right { transform: translateX(60px);  opacity: 0; }
-    #lightbox-img.slide-in-left   { transform: translateX(60px);  opacity: 0; }
-    #lightbox-img.slide-in-right  { transform: translateX(-60px); opacity: 0; }
-    #lightbox-spinner { position: absolute; font-size: 24px; display: none; animation: spin 1s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    #lightbox-stage { position: relative; width: 100%; max-width: 100%; flex: 1; min-height: 0; overflow: hidden; touch-action: pan-y; }
+    /* Track holds prev / current / next slides side by side. At rest
+       it's positioned so only "current" shows — no peek of neighbors
+       until the person actually starts dragging. */
+    #lightbox-track { display: flex; height: 100%; }
+    #lightbox-track.animating { transition: transform 0.3s cubic-bezier(.22,.61,.36,1); }
+    .lb-slide { flex-shrink: 0; height: 100%; display: flex; align-items: center; justify-content: center; }
+    .lb-slide img { max-width: 100%; max-height: 75dvh; border-radius: 14px; border: 1px solid var(--gold-dim); object-fit: contain; display: block; pointer-events: none; }
     #lightbox-note { margin-top: 14px; font-size: 13px; color: var(--ivory-dim); text-align: center; max-width: 320px; line-height: 1.6; font-style: italic; flex-shrink: 0; }
-    #lightbox-counter { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); font-size: 11px; letter-spacing: 0.1em; color: var(--ivory-dim); background: rgba(0,0,0,0.35); padding: 5px 12px; border-radius: 20px; }
+    #lightbox-counter { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); font-size: 11px; letter-spacing: 0.1em; color: var(--ivory-dim); background: rgba(0,0,0,0.35); padding: 5px 12px; border-radius: 20px; z-index: 2; }
     #lightbox-close { position: absolute; top: 16px; right: 16px; width: 38px; height: 38px; border-radius: 50%; background: rgba(253,248,240,0.08); border: 1px solid var(--gold-dim); color: var(--ivory); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s; z-index: 2; }
 
     @media (max-width: 360px) {
@@ -490,8 +489,11 @@
   <span id="lightbox-counter"></span>
   <button id="lightbox-close" onclick="closeLightbox()">✕</button>
   <div id="lightbox-stage">
-    <span id="lightbox-spinner">⏳</span>
-    <img id="lightbox-img" alt="Full photo">
+    <div id="lightbox-track">
+      <div class="lb-slide" id="lb-slide-prev"><img alt=""></div>
+      <div class="lb-slide" id="lb-slide-current"><img alt="Full photo"></div>
+      <div class="lb-slide" id="lb-slide-next"><img alt=""></div>
+    </div>
   </div>
   <p id="lightbox-note"></p>
 </div>
@@ -985,13 +987,24 @@
      When opened, it freezes a *copy* of the currently loaded photo
      order (lbList) and an index into it. Swiping only moves through
      that frozen copy — new photos arriving in the live gallery while
-     the lightbox is open won't reshuffle or interrupt it. Swiping
-     past what's been loaded quietly fetches the next batch (same
-     pagination Firebase call the "+X more" card uses) and appends it
-     to this frozen list only. */
+     the lightbox is open won't reshuffle or interrupt it.
+
+     The photo tracks the finger 1:1 while dragging (a 3-slide track
+     of prev/current/next shifts by exactly your drag distance, with
+     no canned animation while you're actively moving your thumb).
+     Only on release does it either finish the swipe or spring back,
+     based on how far you actually dragged — your pace, not a fixed
+     timer. */
   let lbList = [];       // frozen array of {key, ...item} in display order
   let lbIndex = -1;
   let lbFetchingMore = false;
+  let lbStageWidth  = 0;
+  let lbDragX       = 0;
+  let lbDragging    = false;
+  let lbDragAxis    = null; // 'x' | 'y' | null (undecided)
+  let lbStartX = 0, lbStartY = 0;
+
+  function srcFor(item) { return item ? (item.full || item.image || item.thumb || '') : ''; }
 
   function openLightbox(startKey) {
     lbList = allKeys.slice(0, renderedCount).map(k => loadedItems[k]);
@@ -999,64 +1012,41 @@
     if (lbIndex === -1) lbIndex = 0;
     document.getElementById('lightbox').classList.add('open');
     document.body.style.overflow = 'hidden';
-    renderLightboxPhoto(null);
-  }
-
-  function renderLightboxPhoto(direction) {
-    const item = lbList[lbIndex];
-    if (!item) return;
-    const lbImg    = document.getElementById('lightbox-img');
-    const spinner  = document.getElementById('lightbox-spinner');
-    const fullSrc  = item.full || item.image || item.thumb || '';
-    const counter  = document.getElementById('lightbox-counter');
-    counter.textContent = (lbIndex + 1) + ' / ' + (lbList.length + (renderedCount < allKeys.length ? '+' : ''));
-    document.getElementById('lightbox-note').textContent = item.note ? '"' + item.note + '"' : '';
-
-    const swap = () => {
-      lbImg.src = '';
-      lbImg.classList.add('loading');
-      spinner.style.display = 'block';
-      const full = new Image();
-      full.onload = () => {
-        lbImg.src = fullSrc;
-        lbImg.classList.remove('loading');
-        spinner.style.display = 'none';
-        if (direction) {
-          lbImg.classList.add(direction === 'next' ? 'slide-in-right' : 'slide-in-left');
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-              lbImg.classList.remove('slide-in-right', 'slide-in-left');
-            });
-          });
-        }
-      };
-      full.src = fullSrc;
-    };
-
-    if (direction) {
-      lbImg.classList.add(direction === 'next' ? 'slide-out-left' : 'slide-out-right');
-      setTimeout(() => {
-        lbImg.classList.remove('slide-out-left', 'slide-out-right');
-        swap();
-      }, 150);
-    } else {
-      swap();
-    }
-
+    measureLightboxStage();
+    loadLightboxSlides();
     maybeFetchMoreForLightbox();
   }
 
-  function lightboxNext() {
-    if (lbIndex < lbList.length - 1) {
-      lbIndex++;
-      renderLightboxPhoto('next');
-    }
+  function measureLightboxStage() {
+    const stage = document.getElementById('lightbox-stage');
+    const track = document.getElementById('lightbox-track');
+    lbStageWidth = stage.clientWidth;
+    track.style.width = (lbStageWidth * 3) + 'px';
+    document.querySelectorAll('.lb-slide').forEach(s => s.style.width = lbStageWidth + 'px');
+    setLbTransform(-lbStageWidth, false);
   }
-  function lightboxPrev() {
-    if (lbIndex > 0) {
-      lbIndex--;
-      renderLightboxPhoto('prev');
-    }
+
+  function setLbTransform(x, animate) {
+    const track = document.getElementById('lightbox-track');
+    track.classList.toggle('animating', animate);
+    track.style.transform = `translateX(${x}px)`;
+  }
+
+  /* Fill the prev/current/next slides for the current index and
+     reset the track to center, instantly (no transition). */
+  function loadLightboxSlides() {
+    document.querySelector('#lb-slide-prev img').src    = srcFor(lbList[lbIndex - 1]);
+    document.querySelector('#lb-slide-current img').src = srcFor(lbList[lbIndex]);
+    document.querySelector('#lb-slide-next img').src    = srcFor(lbList[lbIndex + 1]);
+    updateLightboxMeta();
+    setLbTransform(-lbStageWidth, false);
+  }
+
+  function updateLightboxMeta() {
+    const item = lbList[lbIndex];
+    const counter = document.getElementById('lightbox-counter');
+    counter.textContent = (lbIndex + 1) + ' / ' + (lbList.length + (renderedCount < allKeys.length ? '+' : ''));
+    document.getElementById('lightbox-note').textContent = item && item.note ? '"' + item.note + '"' : '';
   }
 
   /* If we're nearing the end of the frozen list but more photos are
@@ -1079,45 +1069,84 @@
 
   function closeLightbox() {
     document.getElementById('lightbox').classList.remove('open');
-    document.getElementById('lightbox-img').src = '';
     document.body.style.overflow = '';
     lbList = [];
     lbIndex = -1;
   }
 
-  /* Swipe detection — horizontal drag on the photo stage only.
-     A vertical drag is left alone (so the note/close area doesn't
-     hijack scroll), and only a clear horizontal gesture triggers
-     next/prev. No partial peek of the next photo while dragging —
-     the transition only plays after the swipe is committed. */
-  (function setupLightboxSwipe() {
+  /* ── Drag handling — the track follows the finger 1:1 ── */
+  function lbDragStart(x, y) {
+    lbStartX = x; lbStartY = y;
+    lbDragging = true; lbDragAxis = null; lbDragX = 0;
+  }
+  function lbDragMove(x, y, evt) {
+    if (!lbDragging) return;
+    const dx = x - lbStartX, dy = y - lbStartY;
+    if (lbDragAxis === null) {
+      if (Math.abs(dx) > 8 || Math.abs(dy) > 8) lbDragAxis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+    }
+    if (lbDragAxis !== 'x') return;
+    if (evt && evt.cancelable) evt.preventDefault();
+    let adjusted = dx;
+    // Rubber-band resistance at the ends of the list
+    if (dx > 0 && lbIndex === 0) adjusted = dx * 0.35;
+    if (dx < 0 && lbIndex === lbList.length - 1) adjusted = dx * 0.35;
+    lbDragX = adjusted;
+    setLbTransform(-lbStageWidth + adjusted, false);
+  }
+  function lbDragEnd() {
+    if (!lbDragging) return;
+    lbDragging = false;
+    const wasXDrag = lbDragAxis === 'x';
+    lbDragAxis = null;
+    if (!wasXDrag) return;
+    const threshold = Math.max(60, lbStageWidth * 0.18);
+    if (lbDragX <= -threshold && lbIndex < lbList.length - 1) {
+      lbCompleteSwipe('next');
+    } else if (lbDragX >= threshold && lbIndex > 0) {
+      lbCompleteSwipe('prev');
+    } else {
+      setLbTransform(-lbStageWidth, true); // didn't drag far enough — spring back
+    }
+    lbDragX = 0;
+  }
+
+  function lbCompleteSwipe(direction) {
+    const track = document.getElementById('lightbox-track');
+    const target = direction === 'next' ? -lbStageWidth * 2 : 0;
+    setLbTransform(target, true);
+    const onEnd = () => {
+      track.removeEventListener('transitionend', onEnd);
+      lbIndex += direction === 'next' ? 1 : -1;
+      loadLightboxSlides();
+      maybeFetchMoreForLightbox();
+    };
+    track.addEventListener('transitionend', onEnd, { once: true });
+  }
+
+  (function setupLightboxDrag() {
     const stage = document.getElementById('lightbox-stage');
-    let sx = 0, sy = 0, tracking = false;
     stage.addEventListener('touchstart', e => {
       if (e.touches.length !== 1) return;
-      sx = e.touches[0].clientX; sy = e.touches[0].clientY;
-      tracking = true;
+      lbDragStart(e.touches[0].clientX, e.touches[0].clientY);
     }, { passive: true });
-    stage.addEventListener('touchend', e => {
-      if (!tracking) return;
-      tracking = false;
-      const t = e.changedTouches[0];
-      const dx = t.clientX - sx, dy = t.clientY - sy;
-      if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-        if (dx < 0) lightboxNext(); else lightboxPrev();
-      }
-    });
+    stage.addEventListener('touchmove', e => {
+      if (e.touches.length !== 1) return;
+      lbDragMove(e.touches[0].clientX, e.touches[0].clientY, e);
+    }, { passive: false });
+    stage.addEventListener('touchend', lbDragEnd);
+    stage.addEventListener('touchcancel', lbDragEnd);
+
     // Basic desktop support
-    stage.addEventListener('mousedown', e => { sx = e.clientX; sy = e.clientY; tracking = true; });
-    stage.addEventListener('mouseup', e => {
-      if (!tracking) return;
-      tracking = false;
-      const dx = e.clientX - sx, dy = e.clientY - sy;
-      if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-        if (dx < 0) lightboxNext(); else lightboxPrev();
-      }
-    });
+    let mouseDown = false;
+    stage.addEventListener('mousedown', e => { mouseDown = true; lbDragStart(e.clientX, e.clientY); });
+    window.addEventListener('mousemove', e => { if (mouseDown) lbDragMove(e.clientX, e.clientY, e); });
+    window.addEventListener('mouseup', () => { if (mouseDown) { mouseDown = false; lbDragEnd(); } });
   })();
+
+  window.addEventListener('resize', () => {
+    if (document.getElementById('lightbox').classList.contains('open')) measureLightboxStage();
+  });
 
   document.getElementById('lightbox').addEventListener('click', e => {
     if (e.target === document.getElementById('lightbox')) closeLightbox();
