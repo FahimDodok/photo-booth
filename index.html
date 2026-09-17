@@ -42,39 +42,66 @@
       z-index: 1;
       max-width: 480px;
       margin: 0 auto;
-      padding: 0 20px 60px;
+      padding: 0 20px 48px;
     }
 
     /* Header */
-    header { text-align: center; padding: 44px 0 28px; }
+    header { text-align: center; padding: 40px 0 24px; }
     .header-eyebrow { font-size: 10px; letter-spacing: 0.35em; text-transform: uppercase; color: var(--gold); margin-bottom: 10px; }
     .header-title { font-family: 'Great Vibes', cursive; font-size: 52px; color: var(--ivory); line-height: 1.1; }
     .gold-line { width: 120px; height: 1px; background: linear-gradient(90deg, transparent, var(--gold), transparent); margin: 14px auto 0; }
 
     /* Snap screen */
     .camera-card { background: var(--ivory-faint); border: 1px solid var(--gold-dim); border-radius: 18px; overflow: hidden; position: relative; }
-    .snap-area { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 52px 24px; cursor: pointer; position: relative; }
-    .snap-label { font-family: 'Playfair Display', serif; font-size: 36px; font-weight: 600; letter-spacing: 0.08em; color: var(--gold); }
+    .snap-area { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 40px 24px; cursor: pointer; position: relative; }
+    .snap-label { font-family: 'Playfair Display', serif; font-size: 34px; font-weight: 600; letter-spacing: 0.08em; color: var(--gold); }
     .snap-hint { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ivory-dim); }
     .snap-reminder { font-size: 11px; color: rgba(201,168,76,0.6); text-align: center; line-height: 1.7; padding: 14px 12px 0; border-top: 1px solid rgba(201,168,76,0.15); margin-top: 4px; }
     #native-input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
 
-    /* Done view (inside camera card after submit) */
-    .done-view { display: none; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 48px 24px; text-align: center; }
-    .done-icon { font-size: 44px; }
-    .done-title { font-family: 'Playfair Display', serif; font-size: 22px; color: var(--ivory); }
-    .done-sub { font-size: 12px; color: var(--ivory-dim); line-height: 1.7; }
-    .done-view img#done-preview {
-      width: 160px;
-      height: 213px;
-      object-fit: cover;
-      border-radius: 14px;
-      border: 1px solid var(--gold-dim);
-      box-shadow: 0 8px 24px rgba(0,0,0,0.35);
-      display: none;
+    /* ══ GALLERY STRIP — right under SNAP, always visible, real-time ══ */
+    .gallery-section { margin-top: 26px; }
+    .section-label { font-size: 10px; letter-spacing: 0.32em; text-transform: uppercase; color: var(--gold); text-align: center; margin: 0 0 6px; }
+    .photo-count { font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ivory-dim); text-align: center; margin-bottom: 12px; }
+    .photo-count span { color: var(--ivory); font-weight: 600; }
+    .gallery-empty { font-size: 12px; color: var(--ivory-dim); text-align: center; padding: 22px 0; }
+    .gallery-track {
+      display: flex;
+      overflow-x: auto;
+      gap: 10px;
+      padding: 4px 2px 10px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+      scrollbar-color: var(--gold-dim) transparent;
+      /* Keeps this layer composited so iOS Safari paints newly
+         inserted cards immediately, without needing another
+         repaint elsewhere on the page to reveal them. */
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
     }
-    .done-gallery-link { color: var(--gold); font-size: 12px; text-decoration: underline; background: none; border: none; cursor: pointer; font-family: 'Poppins', sans-serif; }
-    .btn-again { margin-top: 4px; background: transparent; border: 1px solid var(--gold); color: var(--gold); padding: 10px 28px; border-radius: 10px; font-family: 'Poppins', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; transition: all 0.2s; }
+    .gallery-track::-webkit-scrollbar { height: 3px; }
+    .gallery-track::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 2px; }
+    .g-card {
+      flex-shrink: 0; width: 132px; background: var(--ivory); border-radius: 12px; overflow: hidden; cursor: pointer;
+      box-shadow: 0 3px 14px rgba(0,0,0,0.25);
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
+    }
+    .g-card .thumb {
+      width: 100%; height: 176px; object-fit: cover; display: block; image-orientation: from-image; background: #f0ece4;
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
+    }
+    .g-card .thumb-skeleton { width: 100%; height: 176px; background: linear-gradient(90deg, #f0ece4 25%, #e8e2d9 50%, #f0ece4 75%); background-size: 200% 100%; animation: shimmer-load 1.4s infinite; }
+    @keyframes shimmer-load { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+    .g-note { padding: 7px 9px; font-size: 10.5px; color: var(--navy); line-height: 1.4; }
+    .g-card-more {
+      flex-shrink: 0; width: 90px; height: 176px; margin-top: 0; border-radius: 12px;
+      background: rgba(255,255,255,0.06); border: 1px dashed var(--gold-dim);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--gold); font-size: 11px; letter-spacing: 0.06em; text-align: center; padding: 8px;
+      cursor: pointer;
+    }
 
     /* ══ FULLSCREEN EDITOR OVERLAY ══ */
     #editor-overlay {
@@ -98,13 +125,12 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      /* Cap width so photo doesn't stretch on wide screens */
       max-width: 100%;
     }
     #preview-img {
       width: 100%;
       height: 100%;
-      object-fit: cover;    /* match gallery card crop */
+      object-fit: cover;
       object-position: center;
       display: block;
       image-orientation: from-image;
@@ -250,6 +276,8 @@
       touch-action: none;
       white-space: pre-wrap;
       text-align: center;
+      font-family: 'Poppins', sans-serif;
+      color: #ffffff;
       transform: translate(-50%, -50%) scale(var(--s-scale)) rotate(var(--s-rotate));
       filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
       transition: filter 0.15s;
@@ -276,20 +304,18 @@
     .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(24px); background: rgba(201,168,76,0.15); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--gold-dim); border-radius: 40px; padding: 10px 22px; color: var(--gold); font-size: 13px; font-weight: 500; letter-spacing: 0.04em; white-space: nowrap; z-index: 99998; opacity: 0; transition: transform 0.4s cubic-bezier(.32,.72,0,1), opacity 0.3s; pointer-events: none; }
     .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 
-    /* ══ TEXT MODAL ══ */
+    /* ══ TEXT MODAL — simplified: just a text box + native keyboard ══ */
     #text-modal {
       position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
+      top: 0; left: 0; right: 0;
       z-index: 100000;
-      background: rgba(0,0,0,0.75);
+      background: rgba(0,0,0,0.85);
       display: none;
       flex-direction: column;
-      touch-action: none;
-      /* NEVER move this element — only tm-toolbar moves */
+      height: 100dvh;
     }
     #text-modal.open { display: flex; }
 
-    /* Done button — top right */
     .text-modal-header {
       display: flex;
       justify-content: flex-end;
@@ -307,109 +333,31 @@
       padding: 4px 8px;
     }
 
-    /* Text input area — grows to fill space between header and toolbar */
     .text-modal-content {
       flex: 1;
       display: flex;
-      flex-direction: column;
-      justify-content: center;
-      min-height: 0;
-      overflow: hidden;
-    }
-    .tm-input-wrapper {
-      display: flex;
       align-items: center;
       justify-content: center;
-      padding: 12px 60px 12px 70px;
-      position: relative;
+      min-height: 0;
+      padding: 12px 24px;
     }
 
-    /* Toolbar pinned above keyboard — JS moves only this */
-    #tm-toolbar {
-      flex-shrink: 0;
-      background: rgba(20,20,20,0.97);
-      border-top: 1px solid rgba(255,255,255,0.1);
-      padding: 10px 0 12px;
-      /* Will be switched to fixed when keyboard opens */
-      position: relative;
+    #tm-input {
       width: 100%;
-      z-index: 100001;
+      max-width: 100%;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #fff;
+      font-family: 'Poppins', sans-serif;
+      font-size: 30px;
+      text-align: center;
+      resize: none;
+      line-height: 1.3;
     }
-    /* Spacer to prevent content jumping when toolbar goes fixed */
-    #tm-toolbar-spacer {
-      display: none;
-      flex-shrink: 0;
-    }
+    #tm-input::placeholder { color: rgba(255,255,255,0.35); }
 
-    /* Bigger size slider */
-    .tm-size-slider-wrapper { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); height: 240px; width: 44px; display: flex; align-items: center; justify-content: center; }
-    .tm-size-slider { -webkit-appearance: none; width: 240px; height: 30px; background: transparent; transform: rotate(-90deg); outline: none; cursor: pointer; }
-    .tm-size-slider::-webkit-slider-runnable-track { width: 100%; height: 8px; background: rgba(255,255,255,0.5); border-radius: 10px; clip-path: polygon(0 35%, 100% 0%, 100% 100%, 0 65%); }
-    .tm-size-slider:active::-webkit-slider-runnable-track { background: var(--gold); height: 14px; }
-    .tm-size-slider::-webkit-slider-thumb { -webkit-appearance: none; height: 30px; width: 30px; border-radius: 50%; background: white; margin-top: -11px; box-shadow: 0 2px 6px rgba(0,0,0,0.4); cursor: pointer; }
-    .tm-size-slider:active::-webkit-slider-thumb { background: var(--gold); transform: scale(1.1); }
-
-    #tm-input { width: 100%; background: transparent; border: none; outline: none; color: #fff; font-family: 'Poppins', sans-serif; font-size: 32px; text-align: center; resize: none; line-height: 1.2; }
-    #tm-input::placeholder { color: rgba(255,255,255,0.3); }
-
-    /* Toolbar — fonts first, colors, alignment last — all scrollable */
-    .tm-tools { display: flex; flex-direction: row; gap: 12px; overflow-x: auto; align-items: center; justify-content: flex-start; margin-top: 16px; padding: 4px 20px 8px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
-    .tm-tools::-webkit-scrollbar { display: none; }
-    .tm-row { display: flex; flex-direction: row; gap: 10px; align-items: center; flex-shrink: 0; border-right: 1px solid rgba(255,255,255,0.15); padding-right: 12px; }
-    .tm-row:last-child { border-right: none; padding-right: 0; }
-    .tm-align-btn { width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .tm-font-btn { width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .tm-font-btn.active { background: var(--gold); border-color: var(--gold); color: var(--navy); }
-    .tm-color-btn { width: 36px; height: 36px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.3); cursor: pointer; flex-shrink: 0; transition: transform 0.15s; }
-    .tm-color-btn.active { border: 3px solid white; transform: scale(1.15); }
-
-    /* Gallery section */
-    .gallery-section { background: var(--ivory); position: relative; overflow: hidden; padding: 40px 0 48px; background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M50 10L60 40L90 50L60 60L50 90L40 60L10 50L40 40Z' fill='none' stroke='%23c9a84c' stroke-width='0.5' opacity='0.10'/%3E%3C/svg%3E"), url("data:image/svg+xml,%3Csvg width='80' height='80' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='40' cy='40' r='30' fill='none' stroke='%23c9a84c' stroke-width='0.3' opacity='0.08'/%3E%3C/svg%3E"); background-color: var(--ivory); background-position: 0 0, 40px 40px; background-repeat: repeat; }
-    .gallery-inner { max-width: 480px; margin: 0 auto; padding: 0 20px; position: relative; z-index: 1; }
-    .g-corner { position: absolute; width: 52px; height: 52px; border-color: var(--gold); border-style: solid; opacity: 0.35; }
-    .g-corner.tl { top: 10px; left: 10px; border-width: 2px 0 0 2px; }
-    .g-corner.tr { top: 10px; right: 10px; border-width: 2px 2px 0 0; }
-    .g-corner.bl { bottom: 10px; left: 10px; border-width: 0 0 2px 2px; }
-    .g-corner.br { bottom: 10px; right: 10px; border-width: 0 2px 2px 0; }
-    .section-label-dark { font-size: 10px; letter-spacing: 0.32em; text-transform: uppercase; color: var(--gold); text-align: center; margin: 0 0 6px; }
-    .photo-count-dark { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(15,27,61,0.45); text-align: center; margin-bottom: 14px; }
-    .photo-count-dark span { color: var(--navy); font-weight: 600; }
-    .gallery-empty-dark { font-size: 13px; color: rgba(15,27,61,0.35); text-align: center; padding: 28px 0; width: 100%; }
-    .gallery-track {
-      display: flex;
-      overflow-x: auto;
-      gap: 14px;
-      padding: 4px 0 12px;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: thin;
-      scrollbar-color: var(--gold-dim) transparent;
-      /* Forces iOS Safari to keep this layer composited/painted so
-         dynamically-inserted cards show up without needing another
-         repaint to be triggered elsewhere on the page. */
-      -webkit-transform: translateZ(0);
-      transform: translateZ(0);
-    }
-    .gallery-track::-webkit-scrollbar { height: 3px; }
-    .gallery-track::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 2px; }
-    .g-card {
-      flex-shrink: 0; width: 200px; background: white; border: 1px solid var(--gold-dim); border-radius: 14px; overflow: hidden; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 2px 12px rgba(15,27,61,0.08);
-      -webkit-transform: translateZ(0);
-      transform: translateZ(0);
-    }
-    .g-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(15,27,61,0.12); }
-    .g-card .thumb {
-      width: 100%; height: 240px; object-fit: cover; display: block; image-orientation: from-image; background: #f0ece4;
-      -webkit-transform: translateZ(0);
-      transform: translateZ(0);
-    }
-    .g-card .thumb-skeleton { width: 100%; height: 240px; background: linear-gradient(90deg, #f0ece4 25%, #e8e2d9 50%, #f0ece4 75%); background-size: 200% 100%; animation: shimmer-load 1.4s infinite; }
-    @keyframes shimmer-load { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
-    .g-note { padding: 10px 12px; font-size: 12px; color: var(--navy); line-height: 1.5; border-top: 1px solid var(--gold-dim); }
-    #load-more-wrap { text-align: center; margin-top: 14px; display: none; }
-    .btn-load-more { background: transparent; border: 1px solid var(--gold-dim); color: var(--navy); padding: 9px 24px; border-radius: 20px; font-family: 'Poppins', sans-serif; font-size: 11px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; transition: all 0.2s; }
-    .btn-load-more:hover { border-color: var(--gold); color: var(--gold); }
-
-    /* Lightbox */
+    /* Gallery empty helper reused for lightbox states etc. */
     #lightbox { position: fixed; inset: 0; z-index: 99999; background: rgba(10,16,35,0.96); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); display: none; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
     #lightbox.open { display: flex; }
     #lightbox-img { max-width: 100%; max-height: 75dvh; border-radius: 14px; border: 1px solid var(--gold-dim); object-fit: contain; transition: opacity 0.3s; }
@@ -421,7 +369,8 @@
 
     @media (max-width: 360px) {
       .header-title { font-size: 42px; }
-      .g-card { width: 180px; }
+      .g-card { width: 118px; }
+      .g-card .thumb, .g-card .thumb-skeleton { height: 158px; }
     }
   </style>
 </head>
@@ -434,30 +383,29 @@
     <div class="gold-line"></div>
   </header>
 
-  <!-- Snap + Done screen -->
+  <!-- Snap screen -->
   <div class="camera-card" id="camera-card">
     <div class="snap-area" id="snap-area">
-      <span style="font-size:48px;">📷</span>
+      <span style="font-size:44px;">📷</span>
       <p class="snap-label">SNAP!</p>
       <p class="snap-hint">Tap to open camera</p>
       <p class="snap-reminder">📸 Photos are shared publicly with all guests.<br>Make it your best shot — once posted, it cannot be deleted!<br>📐 For best results, shoot in <strong>portrait mode</strong> (3:4 ratio) so your photo fills the frame perfectly.</p>
       <input type="file" id="native-input" accept="image/*" capture>
     </div>
-    <div id="done-view" class="done-view">
-      <span class="done-icon">✨</span>
-      <img id="done-preview" alt="Your photo">
-      <p class="done-title">Thank you!</p>
-      <p class="done-sub">Your photo has been shared.<br>Enjoy the celebration!</p>
-      <button class="done-gallery-link" onclick="scrollToGallery()">View the gallery ↓</button>
-      <button class="btn-again" onclick="takeAnother()">Take Another</button>
-    </div>
+  </div>
+
+  <!-- ══ GALLERY — right under SNAP, swipeable, real-time, visible to everyone from first load ══ -->
+  <div class="gallery-section">
+    <p class="section-label">✦ Guest Gallery ✦</p>
+    <p class="photo-count" id="photo-count" style="display:none;"><span id="photo-num">0</span> photos shared</p>
+    <p class="gallery-empty" id="gallery-empty">Loading photos…</p>
+    <div class="gallery-track" id="gallery"></div>
   </div>
 </div><!-- end .page -->
 
 <!-- ══ FULLSCREEN EDITOR OVERLAY ══ -->
 <div id="editor-overlay">
 
-  <!-- Photo fills all space -->
   <div id="editor-photo-wrap">
     <img id="preview-img" alt="Your photo preview">
     <canvas id="frame-canvas"></canvas>
@@ -466,7 +414,6 @@
     <button id="cancel-btn" onclick="retake()" title="Cancel">✕</button>
   </div>
 
-  <!-- Bottom toolbar — never scrolls -->
   <div id="editor-toolbar">
     <div id="upload-progress"><div id="upload-progress-bar"></div></div>
 
@@ -499,57 +446,14 @@
   </div>
 </div>
 
-<!-- Text modal (above editor) -->
+<!-- Text modal — plain text box, native keyboard, Done to finish.
+     Resize/rotate happens afterward on the placed sticker itself. -->
 <div id="text-modal">
   <div class="text-modal-header">
     <button class="tm-done" onclick="confirmText()">Done</button>
   </div>
   <div class="text-modal-content">
-    <div class="tm-input-wrapper">
-      <div class="tm-size-slider-wrapper">
-        <input type="range" class="tm-size-slider" id="tm-size-slider" min="0.5" max="4.0" step="0.1" value="1.0" oninput="updateTextSize(this.value)">
-      </div>
-      <textarea id="tm-input" rows="3" placeholder="Type text or emoji..."></textarea>
-    </div>
-    <div id="tm-toolbar"><div class="tm-tools">
-      <!-- Fonts first -->
-      <div class="tm-row tm-fonts">
-        <button class="tm-font-btn active" style="font-family:'Poppins',sans-serif;" onclick="selectFont('\'Poppins\',sans-serif',this)">Aa</button>
-        <button class="tm-font-btn" style="font-family:'Great Vibes',cursive;font-size:20px;" onclick="selectFont('\'Great Vibes\',cursive',this)">Aa</button>
-        <button class="tm-font-btn" style="font-family:'Playfair Display',serif;" onclick="selectFont('\'Playfair Display\',serif',this)">Aa</button>
-        <button class="tm-font-btn" style="font-family:serif;" onclick="selectFont('serif',this)">Aa</button>
-      </div>
-      <!-- Colors -->
-      <div class="tm-row tm-colors">
-        <button class="tm-color-btn active" style="background:#ffffff;" onclick="selectColor('#ffffff',this)"></button>
-        <button class="tm-color-btn" style="background:#0f1b3d;" onclick="selectColor('#0f1b3d',this)"></button>
-        <button class="tm-color-btn" style="background:#c9a84c;" onclick="selectColor('#c9a84c',this)"></button>
-        <button class="tm-color-btn" style="background:#ff5050;" onclick="selectColor('#ff5050',this)"></button>
-        <button class="tm-color-btn" style="background:#87ceeb;" onclick="selectColor('#87ceeb',this)"></button>
-        <button class="tm-color-btn" style="background:#ffb6c1;" onclick="selectColor('#ffb6c1',this)"></button>
-      </div>
-      <!-- Alignment last -->
-      <div class="tm-row">
-        <button class="tm-align-btn" id="tm-align-btn" onclick="toggleAlignment()">≡</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Gallery -->
-<div class="gallery-section">
-  <div class="gallery-inner">
-    <div class="g-corner tl"></div>
-    <div class="g-corner tr"></div>
-    <div class="g-corner bl"></div>
-    <div class="g-corner br"></div>
-    <p class="section-label-dark">✦ Guest Gallery ✦</p>
-    <p class="photo-count-dark" id="photo-count" style="display:none;"><span id="photo-num">0</span> photos shared</p>
-    <p class="gallery-empty-dark" id="gallery-empty" style="display:block;">Loading photos…</p>
-    <div class="gallery-track" id="gallery"></div>
-    <div id="load-more-wrap">
-      <button class="btn-load-more" onclick="loadMore()">Load more</button>
-    </div>
+    <textarea id="tm-input" rows="4" placeholder="Type text or emoji…"></textarea>
   </div>
 </div>
 
@@ -598,8 +502,8 @@
     if (!active) document.querySelectorAll('.petal').forEach(p => p.remove());
   }
 
-  /* ── Force a reflow so iOS Safari repaints dynamically-inserted
-       content inside the horizontally-scrolling gallery track ── */
+  /* ── Force a reflow — defensive, in case any browser needs a nudge
+       to paint newly-inserted gallery cards ── */
   function forceReflow(el) { if (el) void el.offsetHeight; }
 
   /* ── Image processing ── */
@@ -651,13 +555,10 @@
 
   /* ── Open fullscreen editor ── */
   function openEditor() {
-    document.getElementById('snap-area').style.display  = 'none';
-    document.getElementById('done-view').style.display  = 'none';
     document.getElementById('editor-overlay').classList.add('open');
     document.getElementById('cancel-btn').style.display = 'flex';
     document.body.style.overflow = 'hidden';
 
-    // Reset UI
     document.getElementById('sticker-layer').innerHTML = '';
     document.getElementById('note-input').value = '';
     document.getElementById('flip-btn').classList.remove('active');
@@ -703,17 +604,17 @@
     previewImg.src = '';
     document.getElementById('editor-overlay').classList.remove('open');
     document.getElementById('cancel-btn').style.display = 'none';
-    document.getElementById('done-view').style.display  = 'none';
     document.getElementById('note-input').value = '';
     document.getElementById('sticker-layer').innerHTML = '';
     const fc = document.getElementById('frame-canvas');
     fc.getContext('2d').clearRect(0, 0, fc.width, fc.height);
     document.body.style.overflow = '';
     togglePetals(true);
-    document.getElementById('snap-area').style.display = 'flex';
   }
 
-  /* ── Submit ── */
+  /* ── Submit — on success, drop straight back to the snap screen
+       (same as first page load); the gallery below already shows
+       the new photo in real time via the child_added listener ── */
   async function submitPhoto() {
     if (!capturedThumb || !capturedFull) return;
     const btn = document.getElementById('submit-btn');
@@ -734,14 +635,12 @@
       bar.style.width = '60%';
       await photosRef.push({ thumb: finalThumb, full: finalFull, note, timestamp: Date.now() });
       bar.style.width = '100%';
-      document.getElementById('note-input').value = '';
       setTimeout(() => {
         prog.style.display = 'none';
         bar.style.width    = '0%';
-        btn.textContent    = 'Submit ✦'; // ← reset text
-        btn.disabled       = false;      // ← ALWAYS re-enable
-        showDone(finalFull);             // ← pass the final composed photo through
-        togglePetals(true);
+        btn.textContent    = 'Submit ✦';
+        btn.disabled       = false;
+        retake();            // reset straight back to the snap screen
         showToast();
       }, 300);
     } catch (err) {
@@ -751,43 +650,6 @@
       btn.textContent    = 'Try Again';
       btn.disabled       = false;
     }
-  }
-
-  /* ── Show done screen (with a preview of what was just submitted) ── */
-  function showDone(previewSrc) {
-    capturedThumb = capturedFull = null;
-    document.getElementById('editor-overlay').classList.remove('open');
-    document.body.style.overflow = '';
-    const preview = document.getElementById('done-preview');
-    if (previewSrc) {
-      preview.src = previewSrc;
-      preview.style.display = 'block';
-    } else {
-      preview.style.display = 'none';
-    }
-    document.getElementById('done-view').style.display = 'flex';
-  }
-
-  function scrollToGallery() {
-    document.querySelector('.gallery-section').scrollIntoView({ behavior: 'smooth' });
-  }
-
-  /* ── Take another — clean slate ── */
-  function takeAnother() {
-    document.getElementById('done-view').style.display = 'none';
-    document.getElementById('snap-area').style.display = 'flex';
-    document.getElementById('done-preview').src = '';
-    document.getElementById('done-preview').style.display = 'none';
-    nativeInput.value = '';
-    currentFrame = 'none';
-    document.getElementById('sticker-layer').innerHTML = '';
-    document.getElementById('note-input').value = '';
-    document.getElementById('flip-btn').classList.remove('active');
-    document.getElementById('flip-btn').textContent = '🔁 Flip / Mirror';
-    document.querySelectorAll('.frame-opt').forEach(b => b.classList.remove('selected'));
-    document.querySelector('[data-frame="none"]').classList.add('selected');
-    const fc = document.getElementById('frame-canvas');
-    if (fc) fc.getContext('2d').clearRect(0, 0, fc.width, fc.height);
   }
 
   /* ── Frames ── */
@@ -844,96 +706,31 @@
     }
   }
 
-  /* ── Text modal ── */
-  let currentTmFont  = "'Poppins',sans-serif";
-  let currentTmColor = "#ffffff";
-  let currentTmAlign = "center";
-  let currentTmScale = 1.0;
+  /* ── Text modal — plain textarea, native keyboard, Done to finish.
+       No font/color/alignment pickers: everything is fixed style
+       (white, Poppins, centered) and resized/rotated afterward via
+       the sticker's own pinch/rotate gesture. ── */
   let editingSticker = null;
 
   function openTextModal() {
     editingSticker = null;
-    document.getElementById('text-modal').classList.add('open');
-    // Trigger toolbar pin after keyboard appears
-    if (window._pinToolbar) setTimeout(window._pinToolbar, 350);
     const input = document.getElementById('tm-input');
     input.value = '';
-    selectFont("'Poppins',sans-serif", document.querySelectorAll('.tm-font-btn')[0]);
-    selectColor('#ffffff', document.querySelectorAll('.tm-color-btn')[0]);
-    setAlign('center');
-    document.getElementById('tm-size-slider').value = 1.0;
-    updateTextSize(1.0);
-    setTimeout(() => input.focus(), 100);
+    document.getElementById('text-modal').classList.add('open');
+    setTimeout(() => input.focus(), 50);
   }
 
   function editSticker(el) {
     editingSticker = el;
-    document.getElementById('text-modal').classList.add('open');
-    if (window._pinToolbar) setTimeout(window._pinToolbar, 350);
     const input = document.getElementById('tm-input');
     input.value = el.textContent;
-    currentTmFont  = el.dataset.font  || "'Poppins',sans-serif";
-    currentTmColor = el.dataset.color || '#ffffff';
-    currentTmAlign = el.dataset.align || 'center';
-    currentTmScale = parseFloat(el.dataset.scale) || 1.0;
-    input.style.fontFamily = currentTmFont;
-    input.style.color      = currentTmColor;
-    input.style.textAlign  = currentTmAlign;
-    document.getElementById('tm-size-slider').value = currentTmScale;
-    updateTextSize(currentTmScale);
-    // Restore font button active state
-    document.querySelectorAll('.tm-font-btn').forEach(b => {
-      b.classList.toggle('active', b.style.fontFamily.replace(/"/g,"'").includes(currentTmFont.split(',')[0].replace(/'/g,'')));
-    });
-    // Restore color button active state
-    document.querySelectorAll('.tm-color-btn').forEach(b => {
-      b.classList.toggle('active', b.style.background === currentTmColor || b.style.backgroundColor === currentTmColor);
-    });
-    setAlign(currentTmAlign);
-    setTimeout(() => input.focus(), 100);
-  }
-
-  function updateTextSize(val) {
-    currentTmScale = parseFloat(val);
-    document.getElementById('tm-input').style.fontSize = Math.round(32 * currentTmScale) + 'px';
-  }
-
-  function toggleAlignment() {
-    const aligns = ['left','center','right'];
-    setAlign(aligns[(aligns.indexOf(currentTmAlign)+1) % aligns.length]);
-  }
-  function setAlign(align) {
-    currentTmAlign = align;
-    document.getElementById('tm-input').style.textAlign = align;
-    const btn = document.getElementById('tm-align-btn');
-    btn.textContent = align === 'left' ? '⫷' : align === 'right' ? '⫸' : '≡';
-  }
-
-  function selectFont(font, btn) {
-    currentTmFont = font;
-    document.getElementById('tm-input').style.fontFamily = font;
-    document.querySelectorAll('.tm-font-btn').forEach(b => b.classList.remove('active'));
-    if (btn) btn.classList.add('active');
-  }
-
-  function selectColor(color, btn) {
-    currentTmColor = color;
-    document.getElementById('tm-input').style.color = color;
-    document.querySelectorAll('.tm-color-btn').forEach(b => b.classList.remove('active'));
-    if (btn) btn.classList.add('active');
+    document.getElementById('text-modal').classList.add('open');
+    setTimeout(() => { input.focus(); input.setSelectionRange(input.value.length, input.value.length); }, 50);
   }
 
   function closeTextModal() {
-    const modal   = document.getElementById('text-modal');
-    const toolbar = document.getElementById('tm-toolbar');
-    const spacer  = document.getElementById('tm-toolbar-spacer');
-    modal.classList.remove('open');
-    // Reset toolbar to flow position
-    toolbar.style.position = 'relative';
-    toolbar.style.bottom   = '';
-    toolbar.style.left     = '';
-    toolbar.style.right    = '';
-    spacer.style.display   = 'none';
+    document.getElementById('text-modal').classList.remove('open');
+    document.getElementById('tm-input').blur();
   }
 
   function confirmText() {
@@ -952,15 +749,7 @@
       document.getElementById('sticker-layer').appendChild(s);
       makeDraggable(s);
     }
-    s.textContent        = text;
-    s.style.fontFamily   = currentTmFont;
-    s.style.color        = currentTmColor;
-    s.style.textAlign    = currentTmAlign;
-    s.dataset.font       = currentTmFont;
-    s.dataset.color      = currentTmColor;
-    s.dataset.align      = currentTmAlign;
-    s.dataset.scale      = currentTmScale;
-    s.style.setProperty('--s-scale', currentTmScale);
+    s.textContent = text;
   }
 
   /* ── Trash zone ── */
@@ -977,7 +766,7 @@
     hideTrash();
   }
 
-  /* ── Draggable stickers ── */
+  /* ── Draggable / pinch-scale / rotate stickers (unchanged) ── */
   function makeDraggable(el) {
     let startX, startY, startLeft, startTop, isDragging = false;
     let initialDist = null, initialAngle = null, initialScale = 1, initialRot = 0;
@@ -1077,7 +866,7 @@
     });
   }
 
-  /* ── Compose final image ── */
+  /* ── Compose final image (frame + fixed-style text stickers baked in) ── */
   function composeFinal(srcData, size) {
     return new Promise(resolve => {
       const img = new Image();
@@ -1098,22 +887,14 @@
           ctx.save();
           ctx.translate(sx, sy);
           ctx.rotate(rot * Math.PI / 180);
-          ctx.font         = `${sfs}px ${s.dataset.font || 'Poppins,sans-serif'}`;
-          ctx.fillStyle    = s.dataset.color || '#ffffff';
+          ctx.font         = `${sfs}px 'Poppins',sans-serif`;
+          ctx.fillStyle    = '#ffffff';
           ctx.textBaseline = 'middle';
+          ctx.textAlign    = 'center';
           const lines = s.textContent.split('\n');
           const lh = sfs * 1.2;
           const startY = -(lines.length-1) * lh / 2;
-          let maxW = 0;
-          const metrics = lines.map(l => { const lw = ctx.measureText(l).width; maxW = Math.max(maxW,lw); return {l,lw}; });
-          const align = s.dataset.align || 'center';
-          ctx.textAlign = 'left';
-          metrics.forEach(({l,lw}, i) => {
-            let x = -maxW/2;
-            if (align === 'center') x += (maxW-lw)/2;
-            else if (align === 'right') x += (maxW-lw);
-            ctx.fillText(l, x, startY + i*lh);
-          });
+          lines.forEach((l, i) => ctx.fillText(l, 0, startY + i*lh));
           ctx.restore();
         });
         resolve(c.toDataURL('image/jpeg', size === 'thumb' ? 0.78 : 0.82));
@@ -1121,50 +902,6 @@
       img.src = srcData;
     });
   }
-
-  /* ══════════════════════════════════════════
-     VISUAL VIEWPORT — pins ONLY the toolbar
-     above the keyboard. Modal stays full screen.
-  ══════════════════════════════════════════ */
-  (function setupViewport() {
-    if (!window.visualViewport) return;
-
-    const vv      = window.visualViewport;
-    const toolbar = document.getElementById('tm-toolbar');
-    const spacer  = document.getElementById('tm-toolbar-spacer');
-    const modal   = document.getElementById('text-modal');
-
-    function pinToolbar() {
-      if (!modal.classList.contains('open')) return;
-
-      const toolbarH = toolbar.offsetHeight;
-      const kbBottom = window.innerHeight - (vv.offsetTop + vv.height);
-
-      if (kbBottom > 50) {
-        // Keyboard is open — pin toolbar just above it
-        toolbar.style.position = 'fixed';
-        toolbar.style.bottom   = kbBottom + 'px';
-        toolbar.style.left     = '0';
-        toolbar.style.right    = '0';
-        // Spacer prevents content jump
-        spacer.style.display  = 'block';
-        spacer.style.height   = toolbarH + 'px';
-      } else {
-        // Keyboard closed — restore toolbar to normal flow
-        toolbar.style.position = 'relative';
-        toolbar.style.bottom   = '';
-        toolbar.style.left     = '';
-        toolbar.style.right    = '';
-        spacer.style.display   = 'none';
-      }
-    }
-
-    vv.addEventListener('resize', pinToolbar);
-    vv.addEventListener('scroll', pinToolbar);
-
-    // Expose so openTextModal / editSticker can call it
-    window._pinToolbar = pinToolbar;
-  })();
 
   /* ── Toast ── */
   function showToast() {
@@ -1194,11 +931,12 @@
     if (e.target === document.getElementById('lightbox')) closeLightbox();
   });
 
-  /* ── Gallery ── */
+  /* ── Gallery — always visible from first load, real-time, swipeable ── */
   const gallery  = document.getElementById('gallery');
   const emptyEl  = document.getElementById('gallery-empty');
-  const PAGE_SIZE = 12;
+  const PAGE_SIZE = 14;
   let allKeys = [], loadedItems = {}, renderedCount = 0, totalCount = 0, initialDone = false, lastTimestamp = 0;
+  let moreCardEl = null;
 
   photosRef.orderByChild('timestamp').once('value', snapshot => {
     const entries = [];
@@ -1210,7 +948,7 @@
     totalCount = entries.length;
     updateCount(totalCount);
     if (entries.length === 0) {
-      emptyEl.textContent = 'No photos yet  📸';
+      emptyEl.textContent = 'No photos yet — be the first!  📸';
       emptyEl.style.display = 'block';
       initialDone = true;
       return;
@@ -1220,11 +958,8 @@
     allKeys = entries.map(e => e.key);
     renderPage(0, PAGE_SIZE);
     renderedCount = Math.min(PAGE_SIZE, allKeys.length);
-    if (allKeys.length > PAGE_SIZE) document.getElementById('load-more-wrap').style.display = 'block';
+    refreshMoreCard();
     initialDone = true;
-    // iOS Safari sometimes fails to paint content inserted into a
-    // horizontally-scrolling flex container until something else
-    // forces a repaint — nudge it here so photos show immediately.
     forceReflow(gallery);
   }).catch(err => {
     console.error('Gallery load failed:', err);
@@ -1255,10 +990,21 @@
     });
   }
   function loadMore() {
-    renderPage(renderedCount, PAGE_SIZE);
+    const from = renderedCount;
+    renderPage(from, PAGE_SIZE);
     renderedCount = Math.min(renderedCount+PAGE_SIZE, allKeys.length);
-    if (renderedCount >= allKeys.length) document.getElementById('load-more-wrap').style.display = 'none';
+    refreshMoreCard();
     forceReflow(gallery);
+  }
+  function refreshMoreCard() {
+    if (moreCardEl) { moreCardEl.remove(); moreCardEl = null; }
+    if (renderedCount < allKeys.length) {
+      moreCardEl = document.createElement('div');
+      moreCardEl.className = 'g-card-more';
+      moreCardEl.textContent = `+${allKeys.length - renderedCount} more →`;
+      moreCardEl.addEventListener('click', loadMore);
+      gallery.appendChild(moreCardEl);
+    }
   }
   function makeCard(item) {
     const card  = document.createElement('div');
@@ -1283,9 +1029,7 @@
     card.addEventListener('click', () => openLightbox(fullSrc, item.note));
     return card;
   }
-  let _total = 0;
   function updateCount(n) {
-    _total = n;
     document.getElementById('photo-num').textContent = n;
     document.getElementById('photo-count').style.display = n > 0 ? 'block' : 'none';
   }
