@@ -338,7 +338,8 @@
 
     .text-modal-header {
       display: flex;
-      justify-content: flex-end;
+      justify-content: space-between;
+      align-items: center;
       padding: 16px 20px 8px;
       flex-shrink: 0;
     }
@@ -352,6 +353,23 @@
       color: var(--gold);
       padding: 4px 8px;
     }
+    .tm-aa-btn {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.25);
+      color: #fff;
+      font-family: 'Playfair Display', serif;
+      font-size: 15px;
+      font-weight: 600;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .tm-aa-btn.active { background: var(--gold); border-color: var(--gold); color: var(--navy); }
 
     .text-modal-content {
       flex: 1;
@@ -374,8 +392,54 @@
       text-align: center;
       resize: none;
       line-height: 1.3;
+      transition: font-size 0.1s;
     }
     #tm-input::placeholder { color: rgba(255,255,255,0.35); }
+
+    /* ── Font strip — Instagram-style center-locked picker.
+       A horizontally scrollable row of font names with scroll-snap;
+       a fixed pill marks the screen's horizontal center and never
+       moves — whichever name is scrolled under it is the live
+       selection, updating continuously as you drag, not just on
+       release. */
+    .tm-font-strip { display: none; flex-direction: column; flex-shrink: 0; padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+    .tm-font-strip.open { display: flex; }
+    .tm-font-track-wrap { position: relative; height: 52px; }
+    .tm-font-center-marker {
+      position: absolute;
+      left: 50%; top: 50%;
+      transform: translate(-50%, -50%);
+      width: 128px; height: 38px;
+      border: 1px solid var(--gold-dim);
+      border-radius: 10px;
+      background: rgba(201,168,76,0.10);
+      pointer-events: none;
+      z-index: 1;
+    }
+    .tm-font-track {
+      position: relative;
+      display: flex;
+      align-items: center;
+      height: 100%;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .tm-font-track::-webkit-scrollbar { display: none; }
+    .tm-font-item {
+      flex-shrink: 0;
+      scroll-snap-align: center;
+      padding: 8px 20px;
+      font-size: 15px;
+      color: rgba(255,255,255,0.4);
+      background: none;
+      border: none;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: color 0.15s, transform 0.15s;
+    }
+    .tm-font-item.active { color: #fff; transform: scale(1.08); }
 
     /* Gallery empty helper reused for lightbox states etc. */
     #lightbox { position: fixed; inset: 0; z-index: 99999; background: rgba(10,16,35,0.96); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); display: none; flex-direction: column; align-items: center; justify-content: center; padding: 20px; overflow: hidden; }
@@ -477,10 +541,17 @@
      Resize/rotate happens afterward on the placed sticker itself. -->
 <div id="text-modal">
   <div class="text-modal-header">
+    <button class="tm-aa-btn" id="tm-aa-btn" onclick="toggleFontStrip()">Aa</button>
     <button class="tm-done" onclick="confirmText()">Done</button>
   </div>
   <div class="text-modal-content">
     <textarea id="tm-input" rows="4" placeholder="Type text or emoji…"></textarea>
+  </div>
+  <div class="tm-font-strip" id="tm-font-strip">
+    <div class="tm-font-track-wrap">
+      <div class="tm-font-center-marker"></div>
+      <div class="tm-font-track" id="tm-font-track"></div>
+    </div>
   </div>
 </div>
 
@@ -779,35 +850,158 @@
     }
   }
 
-  /* ── Text modal — plain textarea, native keyboard, Done to finish.
-       No font/color/alignment pickers: everything is fixed style
-       (white, Poppins, centered) and resized/rotated afterward via
-       the sticker's own pinch/rotate gesture. ── */
+  /* ── Text modal — textarea + native keyboard, Done to finish.
+       Tapping "Aa" reveals a horizontally-scrollable strip of font
+       styles with a fixed center marker (Instagram-style): whichever
+       name is scrolled under that marker is the live selection, and
+       the on-screen text updates its style continuously as you drag,
+       not just when you let go. Resize/rotate stays on the placed
+       sticker itself, unchanged. ── */
+  const FONT_PRESETS = [
+    { label: 'Modern',      family: "'Poppins',sans-serif",        weight: '500', style: 'normal', transform: 'none',      spacing: 'normal' },
+    { label: 'Classic',     family: "Georgia,'Times New Roman',serif", weight: '400', style: 'normal', transform: 'none',  spacing: 'normal' },
+    { label: 'Signature',   family: "'Great Vibes',cursive",       weight: '400', style: 'normal', transform: 'none',      spacing: 'normal' },
+    { label: 'Editor',      family: "'Courier New',monospace",     weight: '400', style: 'normal', transform: 'none',      spacing: 'normal' },
+    { label: 'Poster',      family: "Impact,'Arial Black',sans-serif", weight: '700', style: 'normal', transform: 'uppercase', spacing: '0.01em' },
+    { label: 'Bubble',      family: "'Comic Sans MS','Chalkboard SE',cursive", weight: '700', style: 'normal', transform: 'none', spacing: 'normal' },
+    { label: 'Deco',        family: "'Playfair Display',serif",    weight: '600', style: 'normal', transform: 'uppercase', spacing: '0.08em' },
+    { label: 'Squeeze',     family: "'Arial Narrow',sans-serif",   weight: '700', style: 'normal', transform: 'none',      spacing: '-0.02em' },
+    { label: 'Typewriter',  family: "'Courier New',Courier,monospace", weight: '400', style: 'normal', transform: 'none',  spacing: '0.03em' },
+    { label: 'Strong',      family: "'Arial Black','Helvetica Neue',sans-serif", weight: '900', style: 'normal', transform: 'none', spacing: 'normal' },
+    { label: 'Meme',        family: "Impact,'Arial Black',sans-serif", weight: '700', style: 'normal', transform: 'uppercase', spacing: 'normal' },
+    { label: 'Elegant',     family: "'Playfair Display',serif",    weight: '400', style: 'italic', transform: 'none',     spacing: '0.02em' },
+    { label: 'DIRECTIONAL', family: "'Poppins',sans-serif",        weight: '600', style: 'normal', transform: 'uppercase', spacing: '0.25em' },
+    { label: 'Literature',  family: "Georgia,'Times New Roman',serif", weight: '400', style: 'italic', transform: 'none', spacing: 'normal' }
+  ];
+
   let editingSticker = null;
+  let tmFontIdx = 0;
+  let tmFontStripBuilt = false;
+  let tmFontScrollRAF = null;
+
+  function applyFontToInput(idx) {
+    const p = FONT_PRESETS[idx];
+    const input = document.getElementById('tm-input');
+    input.style.fontFamily     = p.family;
+    input.style.fontWeight     = p.weight;
+    input.style.fontStyle      = p.style;
+    input.style.textTransform  = p.transform;
+    input.style.letterSpacing  = p.spacing;
+  }
+
+  function buildFontStrip() {
+    if (tmFontStripBuilt) return;
+    const track = document.getElementById('tm-font-track');
+    track.innerHTML = '';
+    FONT_PRESETS.forEach((p, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'tm-font-item';
+      btn.textContent = p.label;
+      btn.style.fontFamily = p.family;
+      btn.dataset.idx = i;
+      btn.addEventListener('click', () => scrollFontStripTo(i, true));
+      track.appendChild(btn);
+    });
+    track.addEventListener('scroll', onFontStripScroll, { passive: true });
+    tmFontStripBuilt = true;
+  }
+
+  function onFontStripScroll() {
+    if (tmFontScrollRAF) return;
+    tmFontScrollRAF = requestAnimationFrame(() => {
+      tmFontScrollRAF = null;
+      const track = document.getElementById('tm-font-track');
+      const center = track.scrollLeft + track.clientWidth / 2;
+      let closestIdx = 0, closestDist = Infinity;
+      track.querySelectorAll('.tm-font-item').forEach(btn => {
+        const btnCenter = btn.offsetLeft + btn.offsetWidth / 2;
+        const dist = Math.abs(btnCenter - center);
+        if (dist < closestDist) { closestDist = dist; closestIdx = parseInt(btn.dataset.idx, 10); }
+      });
+      if (closestIdx !== tmFontIdx) {
+        tmFontIdx = closestIdx;
+        applyFontToInput(tmFontIdx);
+      }
+      track.querySelectorAll('.tm-font-item').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.idx, 10) === tmFontIdx);
+      });
+    });
+  }
+
+  // Center a given preset under the marker. `smooth` = user tapped a
+  // label directly; false = silently jump there (e.g. re-opening an
+  // existing sticker) without an animated scroll.
+  function scrollFontStripTo(idx, smooth) {
+    const track = document.getElementById('tm-font-track');
+    const btn = track.querySelector(`.tm-font-item[data-idx="${idx}"]`);
+    if (!btn) return;
+    const target = btn.offsetLeft + btn.offsetWidth / 2 - track.clientWidth / 2;
+    track.scrollTo({ left: target, behavior: smooth ? 'smooth' : 'auto' });
+    tmFontIdx = idx;
+    applyFontToInput(idx);
+    track.querySelectorAll('.tm-font-item').forEach(b => {
+      b.classList.toggle('active', parseInt(b.dataset.idx, 10) === idx);
+    });
+  }
+
+  function toggleFontStrip() {
+    buildFontStrip();
+    const strip = document.getElementById('tm-font-strip');
+    const btn   = document.getElementById('tm-aa-btn');
+    const willOpen = !strip.classList.contains('open');
+    strip.classList.toggle('open', willOpen);
+    btn.classList.toggle('active', willOpen);
+    if (willOpen) {
+      // Give the strip a frame to become visible/measurable, then
+      // snap it (no animation) to whatever font is already active.
+      requestAnimationFrame(() => scrollFontStripTo(tmFontIdx, false));
+    }
+  }
 
   function openTextModal() {
     editingSticker = null;
+    tmFontIdx = 0;
     const input = document.getElementById('tm-input');
     input.value = '';
+    document.getElementById('tm-font-strip').classList.remove('open');
+    document.getElementById('tm-aa-btn').classList.remove('active');
+    applyFontToInput(0);
     document.getElementById('text-modal').classList.add('open');
     setTimeout(() => input.focus(), 50);
   }
 
   function editSticker(el) {
     editingSticker = el;
+    tmFontIdx = parseInt(el.dataset.fontIdx, 10) || 0;
     const input = document.getElementById('tm-input');
     input.value = el.textContent;
+    document.getElementById('tm-font-strip').classList.remove('open');
+    document.getElementById('tm-aa-btn').classList.remove('active');
+    applyFontToInput(tmFontIdx);
     document.getElementById('text-modal').classList.add('open');
     setTimeout(() => { input.focus(); input.setSelectionRange(input.value.length, input.value.length); }, 50);
   }
 
   function closeTextModal() {
     document.getElementById('text-modal').classList.remove('open');
+    document.getElementById('tm-font-strip').classList.remove('open');
+    document.getElementById('tm-aa-btn').classList.remove('active');
     document.getElementById('tm-input').blur();
+  }
+
+  function applyFontToSticker(el, idx) {
+    const p = FONT_PRESETS[idx];
+    el.dataset.fontIdx    = idx;
+    el.style.fontFamily    = p.family;
+    el.style.fontWeight    = p.weight;
+    el.style.fontStyle     = p.style;
+    el.style.textTransform = p.transform;
+    el.style.letterSpacing = p.spacing;
   }
 
   function confirmText() {
     const text = document.getElementById('tm-input').value.trim();
+    const chosenIdx = tmFontIdx;
     closeTextModal();
     if (!text) { if (editingSticker) deleteSticker(editingSticker); return; }
 
@@ -823,6 +1017,7 @@
       makeDraggable(s);
     }
     s.textContent = text;
+    applyFontToSticker(s, chosenIdx);
   }
 
   /* ── Trash zone ── */
@@ -957,14 +1152,21 @@
           const scale = parseFloat(s.dataset.scale)    || 1;
           const rot   = parseFloat(s.dataset.rotation) || 0;
           const sfs   = Math.round(w * 0.10 * scale);
+          const preset = FONT_PRESETS[parseInt(s.dataset.fontIdx, 10)] || FONT_PRESETS[0];
           ctx.save();
           ctx.translate(sx, sy);
           ctx.rotate(rot * Math.PI / 180);
-          ctx.font         = `${sfs}px 'Poppins',sans-serif`;
+          ctx.font = `${preset.style} ${preset.weight} ${sfs}px ${preset.family}`;
+          if ('letterSpacing' in ctx) {
+            // Supported on modern Chrome/Safari; degrades gracefully
+            // (falls back to normal spacing) on older browsers.
+            try { ctx.letterSpacing = preset.spacing === 'normal' ? '0px' : `${parseFloat(preset.spacing) * sfs}px`; } catch (e) {}
+          }
           ctx.fillStyle    = '#ffffff';
           ctx.textBaseline = 'middle';
           ctx.textAlign    = 'center';
-          const lines = s.textContent.split('\n');
+          const rawText = preset.transform === 'uppercase' ? s.textContent.toUpperCase() : s.textContent;
+          const lines = rawText.split('\n');
           const lh = sfs * 1.2;
           const startY = -(lines.length-1) * lh / 2;
           lines.forEach((l, i) => ctx.fillText(l, 0, startY + i*lh));
