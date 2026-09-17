@@ -378,14 +378,20 @@
     #tm-input::placeholder { color: rgba(255,255,255,0.35); }
 
     /* Gallery empty helper reused for lightbox states etc. */
-    #lightbox { position: fixed; inset: 0; z-index: 99999; background: rgba(10,16,35,0.96); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); display: none; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+    #lightbox { position: fixed; inset: 0; z-index: 99999; background: rgba(10,16,35,0.96); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); display: none; flex-direction: column; align-items: center; justify-content: center; padding: 20px; overflow: hidden; touch-action: pan-y; }
     #lightbox.open { display: flex; }
-    #lightbox-img { max-width: 100%; max-height: 75dvh; border-radius: 14px; border: 1px solid var(--gold-dim); object-fit: contain; transition: opacity 0.3s; }
+    #lightbox-stage { position: relative; width: 100%; max-width: 100%; display: flex; align-items: center; justify-content: center; flex: 1; min-height: 0; overflow: hidden; }
+    #lightbox-img { max-width: 100%; max-height: 75dvh; border-radius: 14px; border: 1px solid var(--gold-dim); object-fit: contain; transition: opacity 0.2s, transform 0.28s ease; }
     #lightbox-img.loading { opacity: 0.3; }
+    #lightbox-img.slide-out-left  { transform: translateX(-60px); opacity: 0; }
+    #lightbox-img.slide-out-right { transform: translateX(60px);  opacity: 0; }
+    #lightbox-img.slide-in-left   { transform: translateX(60px);  opacity: 0; }
+    #lightbox-img.slide-in-right  { transform: translateX(-60px); opacity: 0; }
     #lightbox-spinner { position: absolute; font-size: 24px; display: none; animation: spin 1s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    #lightbox-note { margin-top: 14px; font-size: 13px; color: var(--ivory-dim); text-align: center; max-width: 320px; line-height: 1.6; font-style: italic; }
-    #lightbox-close { position: absolute; top: 16px; right: 16px; width: 38px; height: 38px; border-radius: 50%; background: rgba(253,248,240,0.08); border: 1px solid var(--gold-dim); color: var(--ivory); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
+    #lightbox-note { margin-top: 14px; font-size: 13px; color: var(--ivory-dim); text-align: center; max-width: 320px; line-height: 1.6; font-style: italic; flex-shrink: 0; }
+    #lightbox-counter { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); font-size: 11px; letter-spacing: 0.1em; color: var(--ivory-dim); background: rgba(0,0,0,0.35); padding: 5px 12px; border-radius: 20px; }
+    #lightbox-close { position: absolute; top: 16px; right: 16px; width: 38px; height: 38px; border-radius: 50%; background: rgba(253,248,240,0.08); border: 1px solid var(--gold-dim); color: var(--ivory); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s; z-index: 2; }
 
     @media (max-width: 360px) {
       .header-title { font-size: 42px; }
@@ -481,9 +487,12 @@
 
 <!-- Lightbox -->
 <div id="lightbox">
+  <span id="lightbox-counter"></span>
   <button id="lightbox-close" onclick="closeLightbox()">✕</button>
-  <span id="lightbox-spinner">⏳</span>
-  <img id="lightbox-img" alt="Full photo">
+  <div id="lightbox-stage">
+    <span id="lightbox-spinner">⏳</span>
+    <img id="lightbox-img" alt="Full photo">
+  </div>
   <p id="lightbox-note"></p>
 </div>
 
@@ -972,23 +981,144 @@
     setTimeout(() => t.classList.remove('show'), 2800);
   }
 
-  /* ── Lightbox ── */
-  function openLightbox(fullSrc, note) {
-    const lbImg = document.getElementById('lightbox-img');
-    const spinner = document.getElementById('lightbox-spinner');
-    lbImg.src = ''; lbImg.classList.add('loading'); spinner.style.display = 'block';
-    document.getElementById('lightbox-note').textContent = note ? '"'+note+'"' : '';
+  /* ── Lightbox — swipeable, full-screen, one photo at a time ──
+     When opened, it freezes a *copy* of the currently loaded photo
+     order (lbList) and an index into it. Swiping only moves through
+     that frozen copy — new photos arriving in the live gallery while
+     the lightbox is open won't reshuffle or interrupt it. Swiping
+     past what's been loaded quietly fetches the next batch (same
+     pagination Firebase call the "+X more" card uses) and appends it
+     to this frozen list only. */
+  let lbList = [];       // frozen array of {key, ...item} in display order
+  let lbIndex = -1;
+  let lbFetchingMore = false;
+
+  function openLightbox(startKey) {
+    lbList = allKeys.slice(0, renderedCount).map(k => loadedItems[k]);
+    lbIndex = lbList.findIndex(item => item.key === startKey);
+    if (lbIndex === -1) lbIndex = 0;
     document.getElementById('lightbox').classList.add('open');
     document.body.style.overflow = 'hidden';
-    const full = new Image();
-    full.onload = () => { lbImg.src = fullSrc; lbImg.classList.remove('loading'); spinner.style.display = 'none'; };
-    full.src = fullSrc;
+    renderLightboxPhoto(null);
   }
+
+  function renderLightboxPhoto(direction) {
+    const item = lbList[lbIndex];
+    if (!item) return;
+    const lbImg    = document.getElementById('lightbox-img');
+    const spinner  = document.getElementById('lightbox-spinner');
+    const fullSrc  = item.full || item.image || item.thumb || '';
+    const counter  = document.getElementById('lightbox-counter');
+    counter.textContent = (lbIndex + 1) + ' / ' + (lbList.length + (renderedCount < allKeys.length ? '+' : ''));
+    document.getElementById('lightbox-note').textContent = item.note ? '"' + item.note + '"' : '';
+
+    const swap = () => {
+      lbImg.src = '';
+      lbImg.classList.add('loading');
+      spinner.style.display = 'block';
+      const full = new Image();
+      full.onload = () => {
+        lbImg.src = fullSrc;
+        lbImg.classList.remove('loading');
+        spinner.style.display = 'none';
+        if (direction) {
+          lbImg.classList.add(direction === 'next' ? 'slide-in-right' : 'slide-in-left');
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              lbImg.classList.remove('slide-in-right', 'slide-in-left');
+            });
+          });
+        }
+      };
+      full.src = fullSrc;
+    };
+
+    if (direction) {
+      lbImg.classList.add(direction === 'next' ? 'slide-out-left' : 'slide-out-right');
+      setTimeout(() => {
+        lbImg.classList.remove('slide-out-left', 'slide-out-right');
+        swap();
+      }, 150);
+    } else {
+      swap();
+    }
+
+    maybeFetchMoreForLightbox();
+  }
+
+  function lightboxNext() {
+    if (lbIndex < lbList.length - 1) {
+      lbIndex++;
+      renderLightboxPhoto('next');
+    }
+  }
+  function lightboxPrev() {
+    if (lbIndex > 0) {
+      lbIndex--;
+      renderLightboxPhoto('prev');
+    }
+  }
+
+  /* If we're nearing the end of the frozen list but more photos are
+     already loaded into memory (from the initial gallery fetch) than
+     we've rendered onto the strip yet, page more of them in — same
+     pagination the "+X more" card uses. This only ever appends; it
+     never removes anything from lbList mid-swipe. */
+  function maybeFetchMoreForLightbox() {
+    const nearEnd = lbIndex >= lbList.length - 3;
+    if (!nearEnd || lbFetchingMore || renderedCount >= allKeys.length) return;
+    lbFetchingMore = true;
+    const from = renderedCount;
+    renderPage(from, PAGE_SIZE); // also grows the live strip — same source data either way
+    renderedCount = Math.min(renderedCount + PAGE_SIZE, allKeys.length);
+    refreshMoreCard();
+    forceReflow(gallery);
+    lbList = lbList.concat(allKeys.slice(from, renderedCount).map(k => loadedItems[k]));
+    lbFetchingMore = false;
+  }
+
   function closeLightbox() {
     document.getElementById('lightbox').classList.remove('open');
     document.getElementById('lightbox-img').src = '';
     document.body.style.overflow = '';
+    lbList = [];
+    lbIndex = -1;
   }
+
+  /* Swipe detection — horizontal drag on the photo stage only.
+     A vertical drag is left alone (so the note/close area doesn't
+     hijack scroll), and only a clear horizontal gesture triggers
+     next/prev. No partial peek of the next photo while dragging —
+     the transition only plays after the swipe is committed. */
+  (function setupLightboxSwipe() {
+    const stage = document.getElementById('lightbox-stage');
+    let sx = 0, sy = 0, tracking = false;
+    stage.addEventListener('touchstart', e => {
+      if (e.touches.length !== 1) return;
+      sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+      tracking = true;
+    }, { passive: true });
+    stage.addEventListener('touchend', e => {
+      if (!tracking) return;
+      tracking = false;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - sx, dy = t.clientY - sy;
+      if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+        if (dx < 0) lightboxNext(); else lightboxPrev();
+      }
+    });
+    // Basic desktop support
+    stage.addEventListener('mousedown', e => { sx = e.clientX; sy = e.clientY; tracking = true; });
+    stage.addEventListener('mouseup', e => {
+      if (!tracking) return;
+      tracking = false;
+      const dx = e.clientX - sx, dy = e.clientY - sy;
+      if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+        if (dx < 0) lightboxNext(); else lightboxPrev();
+      }
+    });
+  })();
+
   document.getElementById('lightbox').addEventListener('click', e => {
     if (e.target === document.getElementById('lightbox')) closeLightbox();
   });
@@ -1072,7 +1202,6 @@
     const card  = document.createElement('div');
     card.className = 'g-card';
     const thumbSrc = item.thumb || item.image || item.full || '';
-    const fullSrc  = item.full  || item.image || item.thumb || '';
     const skel = document.createElement('div');
     skel.className = 'thumb-skeleton';
     card.appendChild(skel);
@@ -1088,7 +1217,7 @@
       p.className = 'g-note'; p.textContent = item.note;
       card.appendChild(p);
     }
-    card.addEventListener('click', () => openLightbox(fullSrc, item.note));
+    card.addEventListener('click', () => openLightbox(item.key));
     return card;
   }
   function updateCount(n) {
