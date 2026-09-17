@@ -116,7 +116,9 @@
     }
     #editor-overlay.open { display: flex; }
 
-    /* Photo area — 3:4 aspect ratio matching gallery card crop */
+    /* Photo area — outer wrap fills the available screen space and
+       letterboxes; #photo-frame is sized in JS to exactly 3:4 so the
+       edit preview always matches the final published crop 1:1. */
     #editor-photo-wrap {
       position: relative;
       flex: 1;
@@ -126,6 +128,13 @@
       align-items: center;
       justify-content: center;
       max-width: 100%;
+      background: #000;
+    }
+    #photo-frame {
+      position: relative;
+      overflow: hidden;
+      background: #000;
+      /* width/height set in JS to keep an exact 3:4 box */
     }
     #preview-img {
       width: 100%;
@@ -407,9 +416,11 @@
 <div id="editor-overlay">
 
   <div id="editor-photo-wrap">
-    <img id="preview-img" alt="Your photo preview">
-    <canvas id="frame-canvas"></canvas>
-    <div id="sticker-layer"></div>
+    <div id="photo-frame">
+      <img id="preview-img" alt="Your photo preview">
+      <canvas id="frame-canvas"></canvas>
+      <div id="sticker-layer"></div>
+    </div>
     <div id="trash-zone"><span class="trash-icon">🗑️</span></div>
     <button id="cancel-btn" onclick="retake()" title="Cancel">✕</button>
   </div>
@@ -506,16 +517,55 @@
        to paint newly-inserted gallery cards ── */
   function forceReflow(el) { if (el) void el.offsetHeight; }
 
-  /* ── Image processing ── */
+  /* ── Image processing ──
+     Every captured photo is center-cropped to true 3:4 right here,
+     before anything else touches it. That means the editor preview,
+     the stored thumb/full images, and the published gallery card are
+     always working with the exact same crop — nothing shifts after
+     publishing. */
+  const PHOTO_ASPECT = 3 / 4; // width / height
+
   function resizeImage(bitmap, maxDim, quality) {
-    const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
-    const w = Math.round(bitmap.width * scale);
-    const h = Math.round(bitmap.height * scale);
+    const bw = bitmap.width, bh = bitmap.height;
+    const currentRatio = bw / bh;
+    let sx = 0, sy = 0, sw = bw, sh = bh;
+    if (currentRatio > PHOTO_ASPECT) {
+      // source is relatively wider than 3:4 — crop the sides
+      sw = bh * PHOTO_ASPECT;
+      sx = (bw - sw) / 2;
+    } else if (currentRatio < PHOTO_ASPECT) {
+      // source is relatively taller than 3:4 — crop top/bottom
+      sh = bw / PHOTO_ASPECT;
+      sy = (bh - sh) / 2;
+    }
+    const outH = Math.min(maxDim, sh);
+    const outW = Math.round(outH * PHOTO_ASPECT);
     const c = document.createElement('canvas');
-    c.width = w; c.height = h;
-    c.getContext('2d').drawImage(bitmap, 0, 0, w, h);
+    c.width = outW; c.height = Math.round(outH);
+    c.getContext('2d').drawImage(bitmap, sx, sy, sw, sh, 0, 0, outW, c.height);
     return c.toDataURL('image/jpeg', quality);
   }
+
+  /* Sizes #photo-frame to the largest 3:4 box that fits the available
+     editor space, so the on-screen preview is pixel-for-pixel the
+     same shape as the stored (already-cropped) image. */
+  function sizePhotoFrame() {
+    const wrap  = document.getElementById('editor-photo-wrap');
+    const frame = document.getElementById('photo-frame');
+    if (!wrap || !frame) return;
+    const availW = wrap.clientWidth;
+    const availH = wrap.clientHeight;
+    let w = availW, h = w / PHOTO_ASPECT;
+    if (h > availH) { h = availH; w = h * PHOTO_ASPECT; }
+    frame.style.width  = Math.round(w) + 'px';
+    frame.style.height = Math.round(h) + 'px';
+  }
+  window.addEventListener('resize', () => {
+    if (document.getElementById('editor-overlay').classList.contains('open')) {
+      sizePhotoFrame();
+      drawFramePreview();
+    }
+  });
 
   /* ── State ── */
   let originalThumb = null, originalFull = null;
@@ -568,7 +618,8 @@
     const fc = document.getElementById('frame-canvas');
     fc.getContext('2d').clearRect(0, 0, fc.width, fc.height);
 
-    previewImg.onload = () => drawFramePreview();
+    sizePhotoFrame();
+    previewImg.onload = () => { sizePhotoFrame(); drawFramePreview(); };
     if (previewImg.complete) drawFramePreview();
   }
 
