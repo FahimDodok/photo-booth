@@ -944,6 +944,13 @@
     });
   }
 
+  function sizeFontTrackPadding() {
+    const track = document.getElementById('tm-font-track');
+    const half = track.clientWidth / 2;
+    track.style.paddingLeft  = half + 'px';
+    track.style.paddingRight = half + 'px';
+  }
+
   function toggleFontStrip() {
     buildFontStrip();
     const strip = document.getElementById('tm-font-strip');
@@ -953,8 +960,12 @@
     btn.classList.toggle('active', willOpen);
     if (willOpen) {
       // Give the strip a frame to become visible/measurable, then
-      // snap it (no animation) to whatever font is already active.
-      requestAnimationFrame(() => scrollFontStripTo(tmFontIdx, false));
+      // pad its ends so even the first/last font can reach the
+      // center marker, and snap to whatever font is already active.
+      requestAnimationFrame(() => {
+        sizeFontTrackPadding();
+        scrollFontStripTo(tmFontIdx, false);
+      });
     }
   }
 
@@ -1348,6 +1359,10 @@
 
   window.addEventListener('resize', () => {
     if (document.getElementById('lightbox').classList.contains('open')) measureLightboxStage();
+    if (document.getElementById('tm-font-strip').classList.contains('open')) {
+      sizeFontTrackPadding();
+      scrollFontStripTo(tmFontIdx, false);
+    }
   });
 
   document.getElementById('lightbox').addEventListener('click', e => {
