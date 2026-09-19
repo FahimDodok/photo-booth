@@ -6,7 +6,7 @@
   <title>Fahim & Auni · Photo Wall</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Poppins:wght@400;500;600&family=Playfair+Display:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Poppins:wght@400;500;600&family=Playfair+Display:wght@400;600&family=Pinyon+Script&display=swap" rel="stylesheet">
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
   <style>
@@ -456,6 +456,51 @@
     #lightbox-counter { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); font-size: 11px; letter-spacing: 0.1em; color: var(--ivory-dim); background: rgba(0,0,0,0.35); padding: 5px 12px; border-radius: 20px; z-index: 2; }
     #lightbox-close { position: absolute; top: 16px; right: 16px; width: 38px; height: 38px; border-radius: 50%; background: rgba(253,248,240,0.08); border: 1px solid var(--gold-dim); color: var(--ivory); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s; z-index: 2; }
 
+    /* ── Loader — first thing shown, before the rest of the page
+       is ready. z-index set above every other overlay on the page
+       (text modal is the next-highest at 100000) so it can never be
+       covered by anything while it's up. */
+    #loader {
+      position: fixed; inset: 0; z-index: 1000000;
+      background: var(--navy);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 20px;
+      transition: opacity 0.6s ease;
+    }
+    #loader.hide { opacity: 0; pointer-events: none; }
+    #loader .loader-icon {
+      font-size: 32px;
+      animation: loaderPulse 1.2s ease-in-out infinite;
+    }
+    #loader .loader-names {
+      font-family: 'Pinyon Script', cursive;
+      font-size: 42px;
+      color: var(--ivory);
+      opacity: 0;
+      animation: loaderFadeIn 0.8s ease 0.3s forwards;
+    }
+    #loader .loader-dots { display: flex; gap: 6px; }
+    #loader .loader-dots span {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: var(--gold); opacity: 0.4;
+      animation: loaderDot 1.2s ease-in-out infinite;
+    }
+    #loader .loader-dots span:nth-child(2) { animation-delay: 0.2s; }
+    #loader .loader-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes loaderPulse {
+      0%,100% { transform: scale(1);    opacity: 0.7; }
+      50%      { transform: scale(1.15); opacity: 1;   }
+    }
+    @keyframes loaderFadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0);   }
+    }
+    @keyframes loaderDot {
+      0%,100% { opacity: 0.3; transform: translateY(0);   }
+      50%      { opacity: 1;   transform: translateY(-4px); }
+    }
+
     @media (max-width: 360px) {
       .header-title { font-size: 42px; }
       .g-card { width: 118px; }
@@ -464,6 +509,34 @@
   </style>
 </head>
 <body>
+
+<div id="loader">
+  <div class="loader-icon">📷</div>
+  <div class="loader-names">Fahim &amp; Auni</div>
+  <div class="loader-dots">
+    <span></span><span></span><span></span>
+  </div>
+</div>
+
+<script>
+  (function () {
+    const loader  = document.getElementById('loader');
+    const minWait = 1800;
+    const start   = Date.now();
+
+    function hideLoader() {
+      const delay = Math.max(0, minWait - (Date.now() - start));
+      setTimeout(() => {
+        loader.classList.add('hide');
+        setTimeout(() => loader.remove(), 650);
+      }, delay);
+    }
+
+    document.readyState === 'complete'
+      ? hideLoader()
+      : window.addEventListener('load', hideLoader);
+  })();
+</script>
 
 <div class="page">
   <header>
